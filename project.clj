@@ -1,4 +1,6 @@
-(defproject clunk "0.1.0-SNAPSHOT"
+(defproject com.kimbsy/clunk "0.1.0-SNAPSHOT"
+  :description "A 2D game engine based on LWJGL (Light Weight Java Game Library)"
+  :url "https://github.com/Kimbsy/clunk"
   :license {:name "MIT License"
             :url "https://opensource.org/licenses/MIT"}
   :dependencies [[org.clojure/clojure "1.12.1"]
