@@ -1,15 +1,16 @@
 (ns clunk.core
   (:gen-class)
-  (:require [clojure.java.io :as io])
-  (:import (java.nio IntBuffer)
+  (:import (java.nio ByteBuffer IntBuffer ShortBuffer)
            (org.lwjgl Version)
-           (org.lwjgl.glfw GLFW
-                           GLFWErrorCallback
-                           GLFWKeyCallbackI
+           (org.lwjgl.glfw Callbacks
+                           GLFW
                            GLFWCursorPosCallbackI
-                           GLFWMouseButtonCallbackI
+                           GLFWErrorCallback
                            GLFWFramebufferSizeCallbackI
-                           Callbacks)
+                           GLFWKeyCallbackI
+                           GLFWMouseButtonCallbackI)
+           (org.lwjgl.nanovg NanoVG NanoVGGL3 NVGColor)
+           (org.lwjgl.openal AL AL10 ALCCapabilities ALC10 ALC)
            ;; @NOTE ok bafflingly you need to know which version of
            ;; OpenGL a feature comes from in order to use it, java
            ;; would just import GLXX.* but we need to ns-qualify our
@@ -18,13 +19,10 @@
                              GL11
                              GL14
                              GL30)
-           (org.lwjgl.system MemoryStack)
-           (org.lwjgl.stb STBImage)
-           (org.lwjgl.nanovg NanoVG NanoVGGL3 NVGColor)))
+           (org.lwjgl.stb STBImage STBVorbis)
+           (org.lwjgl.system MemoryStack MemoryUtil)))
 
 ;; FEATURES
-
-;; @TODO: need to look into audio
 
 ;; @TODO: need to look into timers
 
@@ -32,8 +30,6 @@
 
 ;; @TODO: need to be able to handle exceptions a bit better, currently
 ;; it kills the repl
-
-;; @TODO: moving the mouse slows the framerate right down
 
 
 (def initial-window-width 600)
@@ -189,12 +185,23 @@
   (GL11/glBindTexture GL11/GL_TEXTURE_2D tex-id)
   (draw-bound-texture-quad x y w h))
 
+(defn cleanup-audio
+  [{{:keys [source al-buffer context device]} :audio}]
+  (AL10/alSourceStop source)
+  (AL10/alDeleteSources source)
+  (AL10/alDeleteBuffers al-buffer)
+  (ALC10/alcDestroyContext context)
+  (ALC10/alcCloseDevice device))
+
 (defn -main
   [& args]
   (println "Hello LWJGL! Version:" (Version/getVersion))
 
   (init)
   (main-loop)
+
+  ;; clean up audio stuff on close
+  (cleanup-audio @state)
 
   ;; free window callbacks and destroy the window
   (Callbacks/glfwFreeCallbacks window)
@@ -217,12 +224,53 @@
 
 (defn start-event-polling
   [window]
+  ;; putting event polling in a separate thread (didn't do much for
+  ;; mouse event flood though)
   (future
     (while (not (GLFW/glfwWindowShouldClose window))
       ;; poll for window events, the key callback above will only be
       ;; invoked during this call
       (GLFW/glfwPollEvents)
       (Thread/sleep 1))))
+
+(defn init-audio
+  []
+  ;; init openAL
+  (let [device (ALC10/alcOpenDevice (cast ByteBuffer nil))
+        device-capabilities (ALC/createCapabilities device)
+        context (ALC10/alcCreateContext device (cast IntBuffer nil))]
+    (ALC10/alcMakeContextCurrent context)
+    (AL/createCapabilities device-capabilities)
+
+    ;; decode .ogg -> AL buffer
+    (with-open [stack (MemoryStack/stackPush)]
+      (let [channels (.mallocInt stack 1)
+            sample-rate (.mallocInt stack 1)
+            raw-audio (STBVorbis/stb_vorbis_decode_filename
+                       "resources/audio/music/music.ogg"
+                       channels
+                       sample-rate)]
+        (when-not raw-audio
+          (throw (RuntimeException. (str "Failed to load OGG: " (STBVorbis/stb_vorbis_get_error nil)))))
+
+        ;; choose format based on channels
+        (let [fmt (if (= 1 (.get channels 0))
+                    AL10/AL_FORMAT_MONO16
+                    AL10/AL_FORMAT_STEREO16)
+              al-buffer (AL10/alGenBuffers)]
+          (AL10/alBufferData al-buffer fmt raw-audio (.get sample-rate 0))
+
+          ;; create a source, hook up the buffer, loop and play
+          (let [source (AL10/alGenSources)]
+            (AL10/alSourcei source AL10/AL_BUFFER al-buffer)
+            (AL10/alSourcei source AL10/AL_LOOPING AL10/AL_TRUE)
+            (AL10/alSourcePlay source)
+
+            ;; @TODO: stop and clean up (later?)
+            {:source source
+             :al-buffer al-buffer
+             :context context
+             :device device}))))))
 
 (defn init
   []
@@ -345,6 +393,10 @@
   ;; enable transprency for drawing images
   (GL11/glEnable GL11/GL_BLEND)
   (GL30/glBlendFuncSeparate GL11/GL_SRC_ALPHA GL11/GL_ONE_MINUS_SRC_ALPHA GL11/GL_ONE GL11/GL_ONE_MINUS_SRC_ALPHA)
+
+  ;; start audio
+  (let [audio (init-audio)]
+    (swap! state #(assoc % :audio audio)))
 
   ;; start polling for events
   (start-event-polling window))
