@@ -12,7 +12,10 @@
            ;; OpenGL a feature comes from in order to use it, java
            ;; would just import GLXX.* but we need to ns-qualify our
            ;; interop calls :sigh:
-           (org.lwjgl.opengl GL GL11 GL30)
+           (org.lwjgl.opengl GL
+                             GL11
+                             GL14
+                             GL30)
            (org.lwjgl.system MemoryStack)
            (org.lwjgl.stb STBImage)
            (org.lwjgl.nanovg NanoVG NanoVGGL3 NVGColor)))
@@ -25,8 +28,6 @@
 ;; @TODO: need to look into audio
 
 ;; @TODO: need to look into timers
-
-
 
 (def initial-window-width 600)
 (def initial-window-height 400)
@@ -58,6 +59,23 @@
           (map #(float (/ % 255)))
           vec
           (#(conj % alpha))))))
+
+;; capture and restore the blending state of GL so we can draw NanoVG
+;; text (which blats the config) and then get it back for drawing
+;; images/shapes.
+(defn capture-gl-state
+  []
+  {:src-rgb (GL11/glGetInteger GL30/GL_BLEND_SRC_RGB)
+   :src-alpha (GL11/glGetInteger GL30/GL_BLEND_SRC_ALPHA)
+   :dst-rgb (GL11/glGetInteger GL14/GL_BLEND_DST_RGB)
+   :dst-alpha (GL11/glGetInteger GL11/GL_DST_ALPHA)
+   :blend-enabled? (GL11/glIsEnabled GL11/GL_BLEND)})
+(defn restore-gl-state
+  [{:keys [src-rgb src-alpha dst-rgb dst-alpha blend-enabled?]}]
+  (if blend-enabled?
+    (GL11/glEnable GL11/GL_BLEND)
+    (GL11/glDisable GL11/GL_BLEND))
+  (GL30/glBlendFuncSeparate src-rgb dst-rgb src-alpha dst-alpha))
 
 (defn window-size
   []
@@ -100,6 +118,10 @@
           ;; set filtering
           (GL11/glTexParameteri GL11/GL_TEXTURE_2D GL11/GL_TEXTURE_MIN_FILTER GL11/GL_LINEAR_MIPMAP_LINEAR)
           (GL11/glTexParameteri GL11/GL_TEXTURE_2D GL11/GL_TEXTURE_MAG_FILTER GL11/GL_LINEAR)
+          ;; clamp edges
+          (GL11/glTexParameteri GL11/GL_TEXTURE_2D GL11/GL_TEXTURE_WRAP_S GL30/GL_CLAMP_TO_EDGE)
+          (GL11/glTexParameteri GL11/GL_TEXTURE_2D GL11/GL_TEXTURE_WRAP_T GL30/GL_CLAMP_TO_EDGE)
+
           ;; generate mipmaps
           (GL30/glGenerateMipmap GL11/GL_TEXTURE_2D)
           
@@ -246,7 +268,7 @@
   ;; make the OpenGL context current
   (GLFW/glfwMakeContextCurrent window)
   ;; enable v-sync (set this to 0 to uncap framerate and run fast as possible)
-  (GLFW/glfwSwapInterval 1)
+  (GLFW/glfwSwapInterval 0)
   ;; make the window visible
   (GLFW/glfwShowWindow window)
 
@@ -282,7 +304,12 @@
         ;; load a font
         font (NanoVG/nvgCreateFont vg "sans" "resources/font/UbuntuMono-Regular.ttf")]
     ;; stick them in the state
-    (swap! state #(assoc % :vg vg :font font))))
+    (swap! state #(assoc % :vg vg :font font)))
+
+  ;; enable transprency for drawing images
+  (GL11/glEnable GL11/GL_BLEND)
+  (GL30/glBlendFuncSeparate GL11/GL_SRC_ALPHA GL11/GL_ONE_MINUS_SRC_ALPHA GL11/GL_ONE GL11/GL_ONE_MINUS_SRC_ALPHA)
+)
 
 ;;@TODO: can we make this more functional?
 (defn main-loop
@@ -349,23 +376,23 @@
 
 (defn draw-text
   [vg font]
-  (let [[window-w window-h] (window-size)]
-    (NanoVG/nvgBeginFrame vg window-w window-h 1)
-    (NanoVG/nvgFontSize vg 64)
-    (NanoVG/nvgFontFace vg "sans")
-    (with-open [stack (MemoryStack/stackPush)]
-      (let [white (NVGColor/malloc stack)
-            f0 (float 0)
-            f1 (float 1)]
-        (NanoVG/nvgFillColor vg (NanoVG/nvgRGBAf f1 f1 f1 f1 white))))
-    (NanoVG/nvgText vg (float 50) (float 175) "Hello NanoVG!" )
-    (NanoVG/nvgEndFrame vg)))
+  (let [old-state (capture-gl-state)]
+    (let [[window-w window-h] (window-size)]
+      (NanoVG/nvgBeginFrame vg window-w window-h 1)
+      (NanoVG/nvgFontSize vg 64)
+      (NanoVG/nvgFontFace vg "sans")
+      (with-open [stack (MemoryStack/stackPush)]
+        (let [white (NVGColor/malloc stack)
+              f0 (float 0)
+              f1 (float 1)]
+          (NanoVG/nvgFillColor vg (NanoVG/nvgRGBAf f1 f1 f1 f1 white))))
+      (NanoVG/nvgText vg (float 50) (float 175) "Hello NanoVG!" )
+      (NanoVG/nvgEndFrame vg))
+    (restore-gl-state old-state)))
 
 (defn draw-captain
   [captain]
-  ;; enable transprency for drawing images
-  (GL11/glEnable GL11/GL_BLEND)
-  (GL11/glBlendFunc GL11/GL_SRC_ALPHA GL11/GL_ONE_MINUS_SRC_ALPHA)
+
   (GL11/glColor4f 1 1 1 1)
   ;; args ignored for now
   (draw-texture-quad captain 0 0 0 0))
