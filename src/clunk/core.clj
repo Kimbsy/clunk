@@ -20,7 +20,8 @@
                              GL14
                              GL30)
            (org.lwjgl.stb STBImage STBVorbis)
-           (org.lwjgl.system MemoryStack MemoryUtil)))
+           (org.lwjgl.system MemoryStack MemoryUtil))
+  (:require [clunk.sprite :as sprite]))
 
 ;; FEATURES
 
@@ -35,18 +36,17 @@
 (def initial-window-width 600)
 (def initial-window-height 400)
 
-(def initial-state
-  {:pos [100 100]
-   :vel [(rand-nth [-1 1]) (rand-nth [-1 1])]
-   :w 100
-   :h 100
-   :color [1 1 1 1]})
+(def audio? false)
 
-(def state (atom initial-state))
+(def initial-state
+  {:scenes {:demo {:sprites []}}
+   :current-scene :demo})
+
+(def ^:dynamic *state* (atom initial-state))
 
 (declare window)
 
-(declare init main-loop update-state draw)
+(declare init main-loop)
 
 (defn hex->rgb
   ([hex-string]
@@ -201,7 +201,8 @@
   (main-loop)
 
   ;; clean up audio stuff on close
-  (cleanup-audio @state)
+  (when audio?
+    (cleanup-audio @*state*))
 
   ;; free window callbacks and destroy the window
   (Callbacks/glfwFreeCallbacks window)
@@ -272,6 +273,34 @@
              :context context
              :device device}))))))
 
+(defn randomize-color
+  [s]
+  (assoc s :color [(rand) (rand) (rand)]))
+
+(defn bounce-x
+  [{:keys [w]
+    [x _] :pos
+    :as s}]
+  (let [[max-w _] (window-size)]
+    (if (or (< x 0)
+            (< max-w (+ x w)))
+      (-> s
+          (update-in [:vel 0] * -1)
+          randomize-color)
+      s)))
+
+(defn bounce-y
+  [{:keys [h]
+    [_ y] :pos
+    :as s}]
+  (let [[_ max-h] (window-size)]
+    (if (or (< y 0)
+            (< max-h (+ y h)))
+      (-> s
+          (update-in [:vel 1] * -1)
+          randomize-color)
+      s)))
+
 (defn init
   []
   ;; set up an error callback, the default implementation will print
@@ -314,12 +343,16 @@
          (GLFW/glfwSetWindowShouldClose window true)))))
 
   ;; when the mouse moves in the window set the position of the
-  ;; rectangle to he cursor
+  ;; example sprite to the cursor
   (GLFW/glfwSetCursorPosCallback
    window
    (reify GLFWCursorPosCallbackI
      (invoke [this window xpos ypos]
-       (swap! state #(assoc % :pos [xpos ypos])))))
+       (swap! *state* (fn [state]
+                        (sprite/update-sprites
+                         state
+                         (sprite/has-group :example)
+                         #(assoc % :pos [xpos ypos])))))))
 
   ;; when we press/release a mouse button print it
   (GLFW/glfwSetMouseButtonCallback
@@ -379,7 +412,7 @@
 
   ;; load the captain image as a texture
   (let [captain (load-texture "resources/img/captain.png")]
-    (swap! state #(assoc % :captain captain)))
+    (swap! *state* #(assoc % :captain captain)))
 
   ;;;; initialise text rendering stuff
   ;; create NanoVG context
@@ -388,65 +421,40 @@
         ;; load a font
         font (NanoVG/nvgCreateFont vg "sans" "resources/font/UbuntuMono-Regular.ttf")]
     ;; stick them in the state
-    (swap! state #(assoc % :vg vg :font font)))
+    (swap! *state* #(assoc % :vg vg :font font)))
 
   ;; enable transprency for drawing images
   (GL11/glEnable GL11/GL_BLEND)
   (GL30/glBlendFuncSeparate GL11/GL_SRC_ALPHA GL11/GL_ONE_MINUS_SRC_ALPHA GL11/GL_ONE GL11/GL_ONE_MINUS_SRC_ALPHA)
 
   ;; start audio
-  (let [audio (init-audio)]
-    (swap! state #(assoc % :audio audio)))
+  (when audio?
+    (let [audio (init-audio)]
+      (swap! *state* #(assoc % :audio audio))))
 
   ;; start polling for events
-  (start-event-polling window))
+  (start-event-polling window)
 
-;;@TODO: can we make this more functional?
-(defn main-loop
-  []
-  ;; run the rendering loop until the user has attempted to close the
-  ;; window or has pressed the ESC key.
-  (while (not (GLFW/glfwWindowShouldClose window))
-    ;; update the state
-    (swap! state update-state)
 
-    ;; draw everyting
-    (draw @state)))
-
-(defn randomize-color
-  [state]
-  (assoc state :color [(rand) (rand) (rand)]))
-
-(defn bounce-x
-  [{:keys [w]
-    [x _] :pos
-    :as state}]
-  (let [[max-w _] (window-size)]
-    (if (or (< x 0)
-            (< max-w (+ x w)))
-      (-> state
-          (update-in [:vel 0] * -1)
-          randomize-color)
-      state)))
-
-(defn bounce-y
-  [{:keys [h]
-    [_ y] :pos
-    :as state}]
-  (let [[_ max-h] (window-size)]
-    (if (or (< y 0)
-            (< max-h (+ y h)))
-      (-> state
-          (update-in [:vel 1] * -1)
-          randomize-color)
-      state)))
+  ;; add sprite to scene
+  (let [example-sprite (sprite/sprite :example
+                                      [300 50]
+                                      :vel [3 3]
+                                      :update-fn (fn bouncy [s]
+                                                   (-> s
+                                                       sprite/update-pos
+                                                       bounce-x
+                                                       bounce-y))
+                                      :color [0 1 0])]
+    (swap! *state* #(update-in %
+                             [:scenes :demo :sprites]
+                             conj
+                             example-sprite))))
 
 (defn update-state
   [{:keys [vel] :as state}]
   (-> state
-      (update :pos #(map + % vel))
-      bounce-x
-      bounce-y))
+      (sprite/update-state)))
 
 (defn draw-background
   []
@@ -499,14 +507,25 @@
   ;; draw background
   (draw-background)
 
-  ;; draw a rectangle based on the current state
-  (draw-rect x y w h r g b)
-
   ;; draw some text
   (draw-text vg font)
 
   ;; draw the captain texture
   (draw-captain captain)
 
+  (sprite/draw-scene-sprites! state)
+
   ;; swap the colour buffers
   (GLFW/glfwSwapBuffers window))
+
+;;@TODO: can we make this more functional?
+(defn main-loop
+  []
+  ;; run the rendering loop until the user has attempted to close the
+  ;; window or has pressed the ESC key.
+  (while (not (GLFW/glfwWindowShouldClose window))
+    ;; update the state
+    (swap! *state* update-state)
+
+    ;; draw everyting
+    (draw @*state*)))
