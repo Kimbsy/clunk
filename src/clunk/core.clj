@@ -1,5 +1,6 @@
 (ns clunk.core
   (:gen-class)
+  (:require [clojure.java.io :as io])
   (:import (java.nio IntBuffer)
            (org.lwjgl Version)
            (org.lwjgl.glfw GLFW
@@ -13,12 +14,11 @@
            ;; interop calls :sigh:
            (org.lwjgl.opengl GL GL11 GL30)
            (org.lwjgl.system MemoryStack)
-           (org.lwjgl.stb STBImage)))
+           (org.lwjgl.stb STBImage)
+           (org.lwjgl.nanovg NanoVG NanoVGGL3 NVGColor)))
 
 ;; @TODO: need to be able to handle exceptions a bit better, currently
 ;; it kills the repl
-
-;; @TODO: need to look into drawing text using FreeType lib https://learnopengl.com/In-Practice/Text-Rendering
 
 ;; @TODO: need to look into mouse events
 
@@ -176,6 +176,16 @@
   (-> (GLFW/glfwSetErrorCallback nil)
       .free))
 
+(defn reset-ortho-projection
+  [w h]
+  (GL11/glMatrixMode GL11/GL_PROJECTION)
+  (GL11/glLoadIdentity)
+  ;; left, right, top, bottom in pixel units
+  (GL11/glOrtho 0 w h 0 -1 1)
+  ;; go back to model view
+  (GL11/glMatrixMode GL11/GL_MODELVIEW)
+  (GL11/glLoadIdentity))
+
 (defn init
   []
   ;; set up an error callback, the default implementation will print
@@ -238,20 +248,9 @@
   ;; enable v-sync (set this to 0 to uncap framerate and run fast as possible)
   (GLFW/glfwSwapInterval 1)
   ;; make the window visible
-  (GLFW/glfwShowWindow window))
+  (GLFW/glfwShowWindow window)
 
-(defn reset-otho-projection
-  [w h]
-  (GL11/glMatrixMode GL11/GL_PROJECTION)
-  (GL11/glLoadIdentity)
-  ;; left, right, top, bottom in pixel units
-  (GL11/glOrtho 0 w h 0 -1 1)
-  ;; go back to model view
-  (GL11/glMatrixMode GL11/GL_MODELVIEW)
-  (GL11/glLoadIdentity))
 
-(defn main-loop
-  []
   ;; this line is critical for LWJGL's interoperation with GLFW's
   ;; OpenGL context, or any context that is managed externally. LWJGL
   ;; detects the context that is current in the current thread,
@@ -261,7 +260,7 @@
 
 
   ;; @NOTE test setting orthographic mode so we can use pixel positions for vertices
-  (reset-otho-projection initial-window-width initial-window-height)
+  (reset-ortho-projection initial-window-width initial-window-height)
   ;; set resize callback
   (GLFW/glfwSetFramebufferSizeCallback
    window
@@ -270,25 +269,24 @@
        ;; update the GL viewport to cover the new window
        (GL11/glViewport 0 0 w h)
        ;; re-build the ortho projection matrix to match the new size
-       (reset-otho-projection w h))))
-
-
-
-
+       (reset-ortho-projection w h))))
 
   ;; load the captain image as a texture
   (let [captain (load-texture "resources/img/captain.png")]
     (swap! state #(assoc % :captain captain)))
 
+  ;;;; initialise text rendering stuff
+  ;; create NanoVG context
+  (let [vg (NanoVGGL3/nvgCreate (bit-or NanoVGGL3/NVG_ANTIALIAS
+                                        NanoVGGL3/NVG_STENCIL_STROKES))
+        ;; load a font
+        font (NanoVG/nvgCreateFont vg "sans" "resources/font/UbuntuMono-Regular.ttf")]
+    ;; stick them in the state
+    (swap! state #(assoc % :vg vg :font font))))
 
-  ;; enable transparency when drawing images
-  (GL11/glEnable GL11/GL_BLEND)
-  (GL11/glBlendFunc GL11/GL_SRC_ALPHA GL11/GL_ONE_MINUS_SRC_ALPHA)
-  
-
-  
-  ;;@TODO: can we make this more functional?
-  
+;;@TODO: can we make this more functional?
+(defn main-loop
+  []
   ;; run the rendering loop until the user has attempted to close the
   ;; window or has pressed the ESC key.
   (while (not (GLFW/glfwWindowShouldClose window))
@@ -330,22 +328,16 @@
       bounce-x
       bounce-y))
 
-(defn draw
-  [{:keys [w h captain]
-    [x y] :pos
-    [vx vy] :vel
-    [r g b] :color
-    :as state}]
-
+(defn draw-background
+  []
   (let [[bgr bgg bgb bga] (hex->rgb "#A499B3")]
     ;; set the clear colour
     (GL11/glClearColor bgr bgg bgb bga)
     ;; clear the frameBuffer
-    (GL11/glClear (bit-or GL11/GL_COLOR_BUFFER_BIT GL11/GL_DEPTH_BUFFER_BIT)))
+    (GL11/glClear (bit-or GL11/GL_COLOR_BUFFER_BIT GL11/GL_DEPTH_BUFFER_BIT))))
 
-
-
-  ;; draw a rectangle based on the current state
+(defn draw-rect
+  [x y w h r g b]
   (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
   (GL11/glColor3f r g b)
   (GL11/glBegin GL11/GL_QUADS)
@@ -353,13 +345,48 @@
   (GL11/glVertex2f (+ x w) y)
   (GL11/glVertex2f (+ x w) (+ y h))
   (GL11/glVertex2f x (+ y h))
-  (GL11/glEnd)
+  (GL11/glEnd))
 
+(defn draw-text
+  [vg font]
+  (let [[window-w window-h] (window-size)]
+    (NanoVG/nvgBeginFrame vg window-w window-h 1)
+    (NanoVG/nvgFontSize vg 64)
+    (NanoVG/nvgFontFace vg "sans")
+    (with-open [stack (MemoryStack/stackPush)]
+      (let [white (NVGColor/malloc stack)
+            f0 (float 0)
+            f1 (float 1)]
+        (NanoVG/nvgFillColor vg (NanoVG/nvgRGBAf f1 f1 f1 f1 white))))
+    (NanoVG/nvgText vg (float 50) (float 175) "Hello NanoVG!" )
+    (NanoVG/nvgEndFrame vg)))
 
-  ;; draw the captain texture (args ignored for now)
+(defn draw-captain
+  [captain]
+  ;; enable transprency for drawing images
+  (GL11/glEnable GL11/GL_BLEND)
+  (GL11/glBlendFunc GL11/GL_SRC_ALPHA GL11/GL_ONE_MINUS_SRC_ALPHA)
   (GL11/glColor4f 1 1 1 1)
-  (draw-texture-quad captain 0 0 0 0)
-  
+  ;; args ignored for now
+  (draw-texture-quad captain 0 0 0 0))
+
+(defn draw
+  [{:keys [w h captain vg font]
+    [x y] :pos
+    [vx vy] :vel
+    [r g b] :color
+    :as state}]
+  ;; draw background
+  (draw-background)
+
+  ;; draw a rectangle based on the current state
+  (draw-rect x y w h r g b)
+
+  ;; draw some text
+  (draw-text vg font)
+
+  ;; draw the captain texture
+  (draw-captain captain)
 
   ;; swap the colour buffers
   (GLFW/glfwSwapBuffers window)
