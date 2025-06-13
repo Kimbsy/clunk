@@ -6,6 +6,8 @@
            (org.lwjgl.glfw GLFW
                            GLFWErrorCallback
                            GLFWKeyCallbackI
+                           GLFWCursorPosCallbackI
+                           GLFWMouseButtonCallbackI
                            GLFWFramebufferSizeCallbackI
                            Callbacks)
            ;; @NOTE ok bafflingly you need to know which version of
@@ -21,8 +23,6 @@
            (org.lwjgl.nanovg NanoVG NanoVGGL3 NVGColor)))
 
 ;; FEATURES
-
-;; @TODO: need to look into mouse events
 
 ;; @TODO: need to look into audio
 
@@ -249,8 +249,9 @@
   (when (zero? window)
     (throw (IllegalStateException. "Unable to create the GLFW window")))
 
+  ;; @NOTE can stabilise framerate with this when framerate is uncapped
   ;; Hide mouse cursor, for some reason in X11 moving the mouse tanks framerate
-  (GLFW/glfwSetInputMode window GLFW/GLFW_CURSOR GLFW/GLFW_CURSOR_DISABLED)
+  ;; (GLFW/glfwSetInputMode window GLFW/GLFW_CURSOR GLFW/GLFW_CURSOR_DISABLED)
 
   ;; set up a key callback, it will be called every time a key is
   ;; pressed, repeated or released
@@ -263,6 +264,23 @@
                   (= action GLFW/GLFW_RELEASE))
          ;; we will detect this in the window loop
          (GLFW/glfwSetWindowShouldClose window true)))))
+
+  ;; when the mouse moves in the window set the position of the
+  ;; rectangle to he cursor
+  (GLFW/glfwSetCursorPosCallback
+   window
+   (reify GLFWCursorPosCallbackI
+     (invoke [this window xpos ypos]
+       (swap! state #(assoc % :pos [xpos ypos])))))
+
+  ;; when we press/release a mouse button print it
+  (GLFW/glfwSetMouseButtonCallback
+   window
+   (reify GLFWMouseButtonCallbackI
+     (invoke [this window button action mods]
+       (let [buttons [:left :right :middle]
+             actions [:released :pressed]]
+         (prn (get buttons button) (get actions action))))))
 
   ;; @TODO: could refactor to use `window-size`
   ;; get the thread stack and push a new frame
@@ -281,18 +299,16 @@
                       (.get p-height 0))
                    2)]
       ;; centre the window
-      ;; (GLFW/glfwSetWindowPos window x-pos y-pos)
-      )
+      (GLFW/glfwSetWindowPos window x-pos y-pos))
     ;; pop the stack frame
     (MemoryStack/stackPop))
 
   ;; make the OpenGL context current
   (GLFW/glfwMakeContextCurrent window)
   ;; enable v-sync (set this to 0 to uncap framerate and run fast as possible)
-  (GLFW/glfwSwapInterval 0)
+  (GLFW/glfwSwapInterval 1)
   ;; make the window visible
   (GLFW/glfwShowWindow window)
-
 
   ;; this line is critical for LWJGL's interoperation with GLFW's
   ;; OpenGL context, or any context that is managed externally. LWJGL
@@ -300,7 +316,6 @@
   ;; creates the GLCapabilities instance and makes the OpenGL bindings
   ;; available for use
   (GL/createCapabilities)
-
 
   ;; @NOTE test setting orthographic mode so we can use pixel positions for vertices
   (reset-ortho-projection initial-window-width initial-window-height)
