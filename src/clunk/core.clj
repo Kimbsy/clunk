@@ -20,14 +20,21 @@
            (org.lwjgl.stb STBImage)
            (org.lwjgl.nanovg NanoVG NanoVGGL3 NVGColor)))
 
-;; @TODO: need to be able to handle exceptions a bit better, currently
-;; it kills the repl
+;; FEATURES
 
 ;; @TODO: need to look into mouse events
 
 ;; @TODO: need to look into audio
 
 ;; @TODO: need to look into timers
+
+;; BUGS
+
+;; @TODO: need to be able to handle exceptions a bit better, currently
+;; it kills the repl
+
+;; @TODO: moving the mouse slows the framerate right down
+
 
 (def initial-window-width 600)
 (def initial-window-height 400)
@@ -208,6 +215,15 @@
   (GL11/glMatrixMode GL11/GL_MODELVIEW)
   (GL11/glLoadIdentity))
 
+(defn start-event-polling
+  [window]
+  (future
+    (while (not (GLFW/glfwWindowShouldClose window))
+      ;; poll for window events, the key callback above will only be
+      ;; invoked during this call
+      (GLFW/glfwPollEvents)
+      (Thread/sleep 1))))
+
 (defn init
   []
   ;; set up an error callback, the default implementation will print
@@ -227,10 +243,14 @@
   ;; the window will be resizable
   (GLFW/glfwWindowHint GLFW/GLFW_RESIZABLE GLFW/GLFW_TRUE)
 
+  ;; @TODO: would be nice to return the window from this function, instead of deffing it
   ;; create the window
   (def window (GLFW/glfwCreateWindow initial-window-width initial-window-height "Hello, World!" 0 0))
   (when (zero? window)
     (throw (IllegalStateException. "Unable to create the GLFW window")))
+
+  ;; Hide mouse cursor, for some reason in X11 moving the mouse tanks framerate
+  (GLFW/glfwSetInputMode window GLFW/GLFW_CURSOR GLFW/GLFW_CURSOR_DISABLED)
 
   ;; set up a key callback, it will be called every time a key is
   ;; pressed, repeated or released
@@ -261,7 +281,8 @@
                       (.get p-height 0))
                    2)]
       ;; centre the window
-      (GLFW/glfwSetWindowPos window x-pos y-pos))
+      ;; (GLFW/glfwSetWindowPos window x-pos y-pos)
+      )
     ;; pop the stack frame
     (MemoryStack/stackPop))
 
@@ -309,7 +330,9 @@
   ;; enable transprency for drawing images
   (GL11/glEnable GL11/GL_BLEND)
   (GL30/glBlendFuncSeparate GL11/GL_SRC_ALPHA GL11/GL_ONE_MINUS_SRC_ALPHA GL11/GL_ONE GL11/GL_ONE_MINUS_SRC_ALPHA)
-)
+
+  ;; start polling for events
+  (start-event-polling window))
 
 ;;@TODO: can we make this more functional?
 (defn main-loop
@@ -317,7 +340,10 @@
   ;; run the rendering loop until the user has attempted to close the
   ;; window or has pressed the ESC key.
   (while (not (GLFW/glfwWindowShouldClose window))
+    ;; update the state
     (swap! state update-state)
+
+    ;; draw everyting
     (draw @state)))
 
 (defn randomize-color
@@ -416,8 +442,4 @@
   (draw-captain captain)
 
   ;; swap the colour buffers
-  (GLFW/glfwSwapBuffers window)
-
-  ;; poll for window events, the key callback above will only be
-  ;; invoked during this call
-  (GLFW/glfwPollEvents))
+  (GLFW/glfwSwapBuffers window))
