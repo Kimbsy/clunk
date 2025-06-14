@@ -14,18 +14,3 @@
       ;; extract the values from the IntBuffers
       [(.get p-width 0)
        (.get p-height 0)])))
-
-(defn hex->rgb
-  ([hex-string]
-   (hex->rgb hex-string 0))
-  ([hex-string alpha]
-   (let [s (if (= \# (first hex-string))
-             (apply str (rest hex-string))
-             hex-string)]
-     (->> s
-          (partition 2)
-          (map (partial apply str "0x"))
-          (map read-string)
-          (map #(float (/ % 255)))
-          vec
-          (#(conj % alpha))))))

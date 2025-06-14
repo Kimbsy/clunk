@@ -1,6 +1,16 @@
 >(ns clunk.sprite
    (:import (org.lwjgl.opengl GL11))
-   (:require [clunk.image :as image]))
+   (:require [clunk.image :as image]
+             [clunk.palette :as p]))
+
+(defn default-bounding-poly
+  "Generates a bounding polygon based on the `:size` rectangle of a
+  sprite."
+  [{[w h] :size}]
+  [[0 0]
+   [w 0]
+   [w h]
+   [0 h]])
 
 (defn pos-offsets
   "Determine the x and y offsets for a sprite based on it's `:w`, `:h`
@@ -56,6 +66,18 @@
 
 ;; @TODO: image drawing functions should respect sprite `:offsets`
 
+(defn draw-bounds
+  [{[x y] :pos
+    [r g b] :debug-color
+    bounds-fn :bounds-fn
+    :as s}]
+  (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
+  (GL11/glColor3f r g b)
+  (GL11/glBegin GL11/GL_LINE_LOOP)
+  (doseq [[bx by] (bounds-fn s)]
+    (GL11/glVertex2f (+ x bx) (+ y by)))
+  (GL11/glEnd))
+
 (defn draw-default-sprite!
   "Draw a green square as a sprite placeholder."
   [{[x y] :pos
@@ -75,7 +97,11 @@
   (image/draw-image! image-texture pos size))
 
 (defn draw-animated-sprite!
-  [{:keys [pos spritesheet-texture spritesheet-size current-animation animation-frame]
+  [{:keys [pos
+           spritesheet-texture
+           spritesheet-size
+           current-animation
+           animation-frame]
     [w h :as size] :size
     :as s}]
   (let [animation (current-animation (:animations s))
@@ -92,15 +118,6 @@
   (-> s
       (assoc :current-animation animation)
       (assoc :animation-frame 0)))
-
-(defn default-bounding-poly
-  "Generates a bounding polygon based on the `:size` rectangle of a
-  sprite."
-  [{[w h] :size}]
-  [[0 0]
-   [w 0]
-   [w h]
-   [0 h]])
 
 (defn sprite
   "The simplest sensible sprite.
@@ -119,6 +136,8 @@
            points
            bounds-fn
            offsets
+           debug?
+           debug-color
            extra]
     :or {size [20 20]
          vel [0 0]
@@ -126,6 +145,8 @@
          update-fn update-pos
          draw-fn draw-default-sprite!
          offsets [:center]
+         debug? false
+         debug-color p/red
          extra {}}}]
   (merge
    {:sprite-group sprite-group
@@ -140,6 +161,8 @@
                    (if (seq points)
                      :points
                      default-bounding-poly))
+    :debug? debug?
+    :debug-color debug-color
     :offsets offsets}
    extra))
 
@@ -154,11 +177,15 @@
            points
            bounds-fn
            offsets
+           debug?
+           debug-color
            extra]
     :or {vel [0 0]
          update-fn update-pos
          draw-fn draw-image-sprite!
          offsets [:center]
+         debug? false
+         debug-color p/red
          extra {}}}]
   (merge
    (sprite sprite-group pos)
@@ -172,6 +199,8 @@
                    (if (seq points)
                      :points
                      default-bounding-poly))
+    :debug? debug?
+    :debug-color debug-color
     :offsets offsets}
    extra))
 
@@ -185,6 +214,8 @@
            offsets
            animations
            current-animation
+           debug?
+           debug-color
            extra]
     :or {rotation 0
          vel [0 0]
@@ -195,6 +226,8 @@
                             :y-offset 0
                             :frame-delay 100}}
          current-animation :none
+         debug? false
+         debug-color p/red
          extra {}}}]
   (merge
    (sprite sprite-group pos)
@@ -214,15 +247,17 @@
     :animations animations
     :current-animation current-animation
     :delay-count 0
-    :animation-frame 0}
+    :animation-frame 0
+    :debug? debug?
+    :debug-color debug-color}
    extra))
 
 ;; @TODO: text sprite
 
 (defn update-state
   "Update each sprite in the current scene using its `:update-fn`."
-  [{:keys [current-scene] :as state}]
-  (update-in state [:scenes current-scene :sprites]
+  [{:keys [current-scene] :as st}]
+  (update-in st [:scenes current-scene :sprites]
              (fn [sprites]
                (pmap (fn [s]
                        ((:update-fn s) s))
@@ -230,21 +265,25 @@
 
 (defn draw-scene-sprites!
   "Draw each sprite in the current scene using its `:draw-fn`."
-  [{:keys [current-scene] :as state}]
-  (let [sprites (get-in state [:scenes current-scene :sprites])]
+  [{:keys [current-scene]
+    global-debug? :debug?
+    :as st}]
+  (let [sprites (get-in st [:scenes current-scene :sprites])]
     (doall
-     (map (fn [s]
-            ((:draw-fn s) s))
+     (map (fn [{:keys [draw-fn debug?] :as s}]
+            (draw-fn s)
+            (when (or global-debug? debug?)
+              (draw-bounds s)))
           sprites))))
 
 (defn update-sprites
   "Update sprites in the current scene with the update function `f`.
 
   Optionally takes a filtering function `pred`."
-  ([state f]
-   (update-sprites state (constantly true) f))
-  ([{:keys [current-scene] :as state} pred f]
-   (update-in state [:scenes current-scene :sprites]
+  ([st f]
+   (update-sprites st (constantly true) f))
+  ([{:keys [current-scene] :as st} pred f]
+   (update-in st [:scenes current-scene :sprites]
               (fn [sprites]
                 (pmap (fn [s]
                         (if (pred s)

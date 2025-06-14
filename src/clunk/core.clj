@@ -23,7 +23,8 @@
            (org.lwjgl.system MemoryStack MemoryUtil))
   (:require [clunk.sprite :as sprite]
             [clunk.image :as image]
-            [clunk.util :as u]))
+            [clunk.util :as u]
+            [clunk.palette :as p]))
 
 ;; FEATURES
 
@@ -42,9 +43,11 @@
 
 (def initial-state
   {:scenes {:demo {:sprites []}}
-   :current-scene :demo})
+   :current-scene :demo
+   :debug? false})
 
-(def ^:dynamic *state* (atom initial-state))
+(def state (atom initial-state))
+
 
 ;; @TODO: remove declares and global vars
 (declare window)
@@ -87,7 +90,7 @@
 
   ;; clean up audio stuff on close
   (when audio?
-    (cleanup-audio @*state*))
+    (cleanup-audio @state))
 
   ;; free window callbacks and destroy the window
   (Callbacks/glfwFreeCallbacks window)
@@ -158,10 +161,6 @@
              :context context
              :device device}))))))
 
-(defn randomize-color
-  [s]
-  (assoc s :color [(rand) (rand) (rand)]))
-
 (defn bounce-x
   [{[w _] :size
     [x _] :pos
@@ -169,9 +168,7 @@
   (let [[max-w _] (u/window-size window)]
     (if (or (< x 0)
             (< max-w (+ x w)))
-      (-> s
-          (update-in [:vel 0] * -1)
-          randomize-color)
+      (update-in s [:vel 0] * -1)
       s)))
 
 (defn bounce-y
@@ -181,9 +178,7 @@
   (let [[_ max-h] (u/window-size window)]
     (if (or (< y 0)
             (< max-h (+ y h)))
-      (-> s
-          (update-in [:vel 1] * -1)
-          randomize-color)
+      (update-in s [:vel 1] * -1)
       s)))
 
 (defn init-sprites
@@ -225,10 +220,15 @@
                                         (-> s
                                             sprite/update-animated-sprite
                                             bounce-x
-                                            bounce-y)))])
+                                            bounce-y))
+                           :debug? true
+                           :debug-color p/cyan)])
 
 (defn init
   []
+  ;; reset the game state
+  (reset! state initial-state)
+
   ;; set up an error callback, the default implementation will print
   ;; the error message in System.err
   (-> (GLFWErrorCallback/createPrint System/err)
@@ -274,9 +274,9 @@
    window
    (reify GLFWCursorPosCallbackI
      (invoke [this window xpos ypos]
-       (swap! *state* (fn [state]
+       (swap! state (fn [st]
                         (sprite/update-sprites
-                         state
+                         st
                          (sprite/has-group :example)
                          #(assoc % :pos [xpos ypos])))))))
 
@@ -343,7 +343,7 @@
         ;; load a font
         font (NanoVG/nvgCreateFont vg "sans" "resources/font/UbuntuMono-Regular.ttf")]
     ;; stick them in the state
-    (swap! *state* #(assoc % :vg vg :font font)))
+    (swap! state #(assoc % :vg vg :font font)))
 
   ;; enable transprency for drawing images
   (GL11/glEnable GL11/GL_BLEND)
@@ -352,10 +352,10 @@
   ;; start audio
   (when audio?
     (let [audio (init-audio)]
-      (swap! *state* #(assoc % :audio audio))))
+      (swap! state #(assoc % :audio audio))))
 
   (let [sprites (init-sprites)]
-    (swap! *state* #(update-in %
+    (swap! state #(update-in %
                                [:scenes :demo :sprites]
                                concat
                                sprites)))
@@ -364,13 +364,13 @@
   (start-event-polling window))
 
 (defn update-state
-  [{:keys [vel] :as state}]
-  (-> state
+  [{:keys [vel] :as st}]
+  (-> st
       (sprite/update-state)))
 
 (defn draw-background
   []
-  (let [[bgr bgg bgb bga] (u/hex->rgb "#A499B3")]
+  (let [[bgr bgg bgb bga] (p/hex->rgb "#A499B3")]
     ;; set the clear colour
     (GL11/glClearColor bgr bgg bgb bga)
     ;; clear the frameBuffer
@@ -397,7 +397,7 @@
     [x y] :pos
     [vx vy] :vel
     [r g b] :color
-    :as state}]
+    :as st}]
   ;; draw background
   (draw-background)
 
@@ -405,7 +405,7 @@
   (draw-text vg font)
 
   ;; draw he current scene sprites
-  (sprite/draw-scene-sprites! state)
+  (sprite/draw-scene-sprites! st)
 
   ;; swap the colour buffers
   (GLFW/glfwSwapBuffers window))
@@ -417,7 +417,7 @@
   ;; window or has pressed the ESC key.
   (while (not (GLFW/glfwWindowShouldClose window))
     ;; update the state
-    (swap! *state* update-state)
+    (swap! state update-state)
 
     ;; draw everything
-    (draw @*state*)))
+    (draw @state)))
