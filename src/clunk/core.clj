@@ -21,7 +21,8 @@
                              GL30)
            (org.lwjgl.stb STBImage STBVorbis)
            (org.lwjgl.system MemoryStack MemoryUtil))
-  (:require [clunk.sprite :as sprite]))
+  (:require [clunk.sprite :as sprite]
+            [clunk.image :as image]))
 
 ;; FEATURES
 
@@ -33,8 +34,8 @@
 ;; it kills the repl
 
 
-(def initial-window-width 600)
-(def initial-window-height 400)
+(def initial-window-width 1200)
+(def initial-window-height 800)
 
 (def audio? false)
 
@@ -198,7 +199,10 @@
   (println "Hello LWJGL! Version:" (Version/getVersion))
 
   (init)
-  (main-loop)
+  (try
+    (main-loop)
+    (catch Exception e
+      (prn e)))
 
   ;; clean up audio stuff on close
   (when audio?
@@ -300,6 +304,23 @@
           (update-in [:vel 1] * -1)
           randomize-color)
       s)))
+
+(defn init-sprites
+  []
+  [(sprite/sprite :example
+                  [300 50]
+                  :vel [3 3]
+                  :update-fn (fn bouncy [s]
+                               (-> s
+                                   sprite/update-pos
+                                   bounce-x
+                                   bounce-y))
+                  :color [0 1 0])
+   (sprite/image-sprite :captain
+                        [100 100]
+                        [1680 1440]
+                        ;; @TODO: preload assets and get them easily
+                        (load-texture "resources/img/captain.png"))])
 
 (defn init
   []
@@ -410,10 +431,6 @@
        ;; re-build the ortho projection matrix to match the new size
        (reset-ortho-projection w h))))
 
-  ;; load the captain image as a texture
-  (let [captain (load-texture "resources/img/captain.png")]
-    (swap! *state* #(assoc % :captain captain)))
-
   ;;;; initialise text rendering stuff
   ;; create NanoVG context
   (let [vg (NanoVGGL3/nvgCreate (bit-or NanoVGGL3/NVG_ANTIALIAS
@@ -432,24 +449,14 @@
     (let [audio (init-audio)]
       (swap! *state* #(assoc % :audio audio))))
 
-  ;; start polling for events
-  (start-event-polling window)
-
-
-  ;; add sprite to scene
-  (let [example-sprite (sprite/sprite :example
-                                      [300 50]
-                                      :vel [3 3]
-                                      :update-fn (fn bouncy [s]
-                                                   (-> s
-                                                       sprite/update-pos
-                                                       bounce-x
-                                                       bounce-y))
-                                      :color [0 1 0])]
+  (let [sprites (init-sprites)]
     (swap! *state* #(update-in %
-                             [:scenes :demo :sprites]
-                             conj
-                             example-sprite))))
+                               [:scenes :demo :sprites]
+                               concat
+                               sprites)))
+
+  ;; start polling for events
+  (start-event-polling window))
 
 (defn update-state
   [{:keys [vel] :as state}]
@@ -491,13 +498,6 @@
       (NanoVG/nvgEndFrame vg))
     (restore-gl-state old-state)))
 
-(defn draw-captain
-  [captain]
-
-  (GL11/glColor4f 1 1 1 1)
-  ;; args ignored for now
-  (draw-texture-quad captain 0 0 0 0))
-
 (defn draw
   [{:keys [w h captain vg font]
     [x y] :pos
@@ -510,9 +510,7 @@
   ;; draw some text
   (draw-text vg font)
 
-  ;; draw the captain texture
-  (draw-captain captain)
-
+  ;; draw he current scene sprites
   (sprite/draw-scene-sprites! state)
 
   ;; swap the colour buffers
@@ -527,5 +525,5 @@
     ;; update the state
     (swap! *state* update-state)
 
-    ;; draw everyting
+    ;; draw everything
     (draw @*state*)))

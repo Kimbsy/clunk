@@ -1,5 +1,6 @@
 >(ns clunk.sprite
-   (:import (org.lwjgl.opengl GL11)))
+   (:import (org.lwjgl.opengl GL11))
+   (:require [clunk.image :as image]))
 
 (defn pos-offsets
   "Determine the x and y offsets for a sprite based on it's `:w`, `:h`
@@ -48,10 +49,22 @@
           update-animation
           update-pos))
 
+(defn draw-default-sprite!
+  [{[x y] :pos
+    [r g b] :color
+    :keys [w h]}]
+  (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
+  (GL11/glColor3f r g b)
+  (GL11/glBegin GL11/GL_QUADS)
+  (GL11/glVertex2f x y)
+  (GL11/glVertex2f (+ x w) y)
+  (GL11/glVertex2f (+ x w) (+ y h))
+  (GL11/glVertex2f x (+ y h))
+  (GL11/glEnd))
+
 (defn draw-image-sprite!
-  [{:keys [pos rotation image] :as sprite}]
-  ;; @TODO: implement
-  )
+  [{:keys [pos size image-texture] :as sprite}]
+  (image/draw-image! image-texture pos size))
 
 (defn draw-animated-sprite!
   [{:keys [pos rotation w h spritesheet current-animation animation-frame] :as s}]
@@ -72,19 +85,6 @@
    [w 0]
    [w h]
    [0 h]])
-
-(defn draw-default-sprite!
-  [{[x y] :pos
-    [r g b] :color
-    :keys [w h]}]
-  (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
-  (GL11/glColor3f r g b)
-  (GL11/glBegin GL11/GL_QUADS)
-  (GL11/glVertex2f x y)
-  (GL11/glVertex2f (+ x w) y)
-  (GL11/glVertex2f (+ x w) (+ y h))
-  (GL11/glVertex2f x (+ y h))
-  (GL11/glEnd))
 
 (defn sprite
   "The simplest sensible sprite.
@@ -132,9 +132,41 @@
 
 ;; @TODO: geometry-sprite
 
-;; @TODO: image sprite
+;; @TODO: how do we do rotation?
+(defn image-sprite
+  [sprite-group pos [w h :as size] image-texture &
+   {:keys [vel
+           update-fn
+           draw-fn
+           points
+           bounds-fn
+           offsets
+           extra]
+    :or   {vel [0 0]
+           update-fn update-pos
+           draw-fn draw-image-sprite!
+           offsets [:center]
+           extra {}}}]
+  (merge
+   (sprite sprite-group pos)
+   {:w w
+    :h h
+    :size size
+    :image-texture image-texture
+    :vel vel
+    :update-fn update-fn
+    :draw-fn draw-fn
+    :points points
+    :bounds-fn (or bounds-fn
+                   (if (seq points)
+                     :points
+                     default-bounding-poly))
+    :offsets offsets}
+   extra))
 
 ;; @TODO: animated sprite
+
+;; @TODO: text sprite
 
 (defn update-state
   "Update each sprite in the current scene using its `:update-fn`."
