@@ -3,6 +3,8 @@
            (org.lwjgl.stb STBImage)
            (org.lwjgl.system MemoryStack)))
 
+;; @TODO: would be nice to be able to flip in x or y when drawing images
+
 (defn load-texture
   [path]
   ;; prepare buffers for width and height info
@@ -50,15 +52,10 @@
 (defn draw-bound-texture-quad
   "Draw the currently bound texture."
   ;; draw the whole image
-  ([pos
-    parent-dims]
-   (draw-bound-texture-quad
-    pos parent-dims [0 0] parent-dims))
+  ([pos parent-dims]
+   (draw-bound-texture-quad pos parent-dims [0 0] parent-dims))
   ;; draw a subsection of the image
-  ([[pos-x pos-y]
-    [parent-w parent-h]
-    [off-x off-y]
-    [draw-w draw-h]]
+  ([[pos-x pos-y] [parent-w parent-h] [off-x off-y] [draw-w draw-h]]
    (GL11/glColor4f 1 1 1 1)
    (GL11/glEnable GL11/GL_TEXTURE_2D)
 
@@ -98,11 +95,11 @@
   (draw-bound-texture-quad pos image-dims))
 
 (defn draw-sub-image!
-  [texture pos paren-dims offsets draw-dims]
+  [texture pos parent-dims offsets draw-dims]
   ;; @TODO: if we need to draw the same image multiple times we should
   ;; only bind the texture once.
   (GL11/glBindTexture GL11/GL_TEXTURE_2D texture)
-  (draw-bound-texture-quad pos paren-dims offsets draw-dims))
+  (draw-bound-texture-quad pos parent-dims offsets draw-dims))
 
 
 ;; 1. Unhandled java.lang.NullPointerException

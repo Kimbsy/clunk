@@ -8,7 +8,7 @@
 
   Defaults to `[:center :center]`."
   [{[x-off y-off] :offsets
-    :keys [w h]}]
+    [w h] :size}]
   (let [dx (cond
              (= :left x-off) 0
              (= :right x-off) (- w)
@@ -29,12 +29,16 @@
   (assoc s :pos [(+ x vx) (+ y vy)]))
 
 (defn update-frame-delay
+  "Increment the `:delay-count` (wrapping to zero at `:frame-delay`).
+
+  The animation frame will change at 0."
   [{:keys [current-animation] :as s}]
-  (let [animation   (current-animation (:animations s))
+  (let [animation (current-animation (:animations s))
         frame-delay (:frame-delay animation)]
     (update s :delay-count #(mod (inc %) frame-delay))))
 
 (defn update-animation
+  "If the `:delay-count` is zero, move to the next animation frame."
   [{:keys [current-animation delay-count] :as s}]
   (if (zero? delay-count)
     (let [animation (current-animation (:animations s))
@@ -43,6 +47,7 @@
     s))
 
 (defn update-animated-sprite
+  "Update the animation of a sprite in addition to it's position."
   [s]
   (some-> s
           update-frame-delay
@@ -50,9 +55,10 @@
           update-pos))
 
 (defn draw-default-sprite!
+  "Draw a green square as a sprite placeholder."
   [{[x y] :pos
     [r g b] :color
-    :keys [w h]}]
+    [w h] :size}]
   (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
   (GL11/glColor3f r g b)
   (GL11/glBegin GL11/GL_QUADS)
@@ -67,9 +73,17 @@
   (image/draw-image! image-texture pos size))
 
 (defn draw-animated-sprite!
-  [{:keys [pos rotation w h spritesheet current-animation animation-frame] :as s}]
-  ;; @TODO: implement
-  )
+  [{:keys [pos spritesheet-texture spritesheet-size current-animation animation-frame]
+    [w h :as size] :size
+    :as s}]
+  (let [animation (current-animation (:animations s))
+        x-offset  (* animation-frame w)
+        y-offset  (* (:y-offset animation) h)]
+    (image/draw-sub-image! spritesheet-texture
+                           pos
+                           spritesheet-size
+                           [x-offset y-offset]
+                           size)))
 
 (defn set-animation
   [s animation]
@@ -78,9 +92,9 @@
       (assoc :animation-frame 0)))
 
 (defn default-bounding-poly
-  "Generates a bounding polygon based off the `w` by `h` rectangle of a
+  "Generates a bounding polygon based on the `:size` rectangle of a
   sprite."
-  [{:keys [w h]}]
+  [{[w h] :size}]
   [[0 0]
    [w 0]
    [w h]
@@ -95,8 +109,7 @@
   Can be enriched with any custom fields by providing an `:extra`
   kwarg map."
   [sprite-group pos &
-   {:keys [w
-           h
+   {:keys [size
            vel
            color
            update-fn
@@ -105,8 +118,7 @@
            bounds-fn
            offsets
            extra]
-    :or {w 20
-         h 20
+    :or {size [20 20]
          vel [0 0]
          color [1 1 1]
          update-fn update-pos
@@ -117,8 +129,7 @@
    {:sprite-group sprite-group
     :uuid (random-uuid)
     :pos pos
-    :w w
-    :h h
+    :size size
     :vel vel
     :color color
     :update-fn update-fn
@@ -134,7 +145,7 @@
 
 ;; @TODO: how do we do rotation?
 (defn image-sprite
-  [sprite-group pos [w h :as size] image-texture &
+  [sprite-group pos size image-texture &
    {:keys [vel
            update-fn
            draw-fn
@@ -142,16 +153,14 @@
            bounds-fn
            offsets
            extra]
-    :or   {vel [0 0]
-           update-fn update-pos
-           draw-fn draw-image-sprite!
-           offsets [:center]
-           extra {}}}]
+    :or {vel [0 0]
+         update-fn update-pos
+         draw-fn draw-image-sprite!
+         offsets [:center]
+         extra {}}}]
   (merge
    (sprite sprite-group pos)
-   {:w w
-    :h h
-    :size size
+   {:size size
     :image-texture image-texture
     :vel vel
     :update-fn update-fn
@@ -164,7 +173,47 @@
     :offsets offsets}
    extra))
 
-;; @TODO: animated sprite
+(defn animated-sprite
+  [sprite-group pos size spritesheet-texture spritesheet-size &
+   {:keys [vel
+           update-fn
+           draw-fn
+           points
+           bounds-fn
+           offsets
+           animations
+           current-animation
+           extra]
+    :or {rotation 0
+         vel [0 0]
+         update-fn update-animated-sprite
+         draw-fn draw-animated-sprite!
+         offsets [:center]
+         animations {:none {:frames 1
+                            :y-offset 0
+                            :frame-delay 100}}
+         current-animation :none
+         extra {}}}]
+  (merge
+   (sprite sprite-group pos)
+   {:size size
+    :spritesheet-texture spritesheet-texture
+    :spritesheet-size spritesheet-size
+    :vel vel
+    :animated? true
+    :update-fn update-fn
+    :draw-fn draw-fn
+    :points points
+    :bounds-fn (or bounds-fn
+                   (if (seq points)
+                     :points
+                     default-bounding-poly))
+    :offsets offsets
+    :animations animations
+    :current-animation current-animation
+    :delay-count 0
+    :animation-frame 0}
+   extra))
 
 ;; @TODO: text sprite
 

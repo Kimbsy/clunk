@@ -282,7 +282,7 @@
   (assoc s :color [(rand) (rand) (rand)]))
 
 (defn bounce-x
-  [{:keys [w]
+  [{[w _] :size
     [x _] :pos
     :as s}]
   (let [[max-w _] (window-size)]
@@ -294,7 +294,7 @@
       s)))
 
 (defn bounce-y
-  [{:keys [h]
+  [{[_ h] :size
     [_ y] :pos
     :as s}]
   (let [[_ max-h] (window-size)]
@@ -320,7 +320,25 @@
                         [100 100]
                         [1680 1440]
                         ;; @TODO: preload assets and get them easily
-                        (load-texture "resources/img/captain.png"))])
+                        (load-texture "resources/img/captain.png"))
+   (sprite/animated-sprite :animated-captain
+                           [600 100]
+                           [240 360]
+                           (load-texture "resources/img/captain.png")
+                           [1680 1440]
+                           :animations {:none {:frames 1
+                                               :y-offset 0
+                                               :frame-delay 100}
+                                        :idle {:frames 4
+                                               :y-offset 1
+                                               :frame-delay 15}
+                                        :run  {:frames 4
+                                               :y-offset 2
+                                               :frame-delay 8}
+                                        :jump {:frames 7
+                                               :y-offset 3
+                                               :frame-delay 8}}
+                           :current-animation :run)])
 
 (defn init
   []
