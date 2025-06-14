@@ -54,6 +54,8 @@
           update-animation
           update-pos))
 
+;; @TODO: image drawing functions should respect sprite `:offsets`
+
 (defn draw-default-sprite!
   "Draw a green square as a sprite placeholder."
   [{[x y] :pos

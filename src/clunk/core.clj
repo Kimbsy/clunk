@@ -22,7 +22,8 @@
            (org.lwjgl.stb STBImage STBVorbis)
            (org.lwjgl.system MemoryStack MemoryUtil))
   (:require [clunk.sprite :as sprite]
-            [clunk.image :as image]))
+            [clunk.image :as image]
+            [clunk.util :as u]))
 
 ;; FEATURES
 
@@ -45,24 +46,9 @@
 
 (def ^:dynamic *state* (atom initial-state))
 
+;; @TODO: remove declares and global vars
 (declare window)
-
 (declare init main-loop)
-
-(defn hex->rgb
-  ([hex-string]
-   (hex->rgb hex-string 0))
-  ([hex-string alpha]
-   (let [s (if (= \# (first hex-string))
-             (apply str (rest hex-string))
-             hex-string)]
-     (->> s
-          (partition 2)
-          (map (partial apply str "0x"))
-          (map read-string)
-          (map #(float (/ % 255)))
-          vec
-          (#(conj % alpha))))))
 
 ;; capture and restore the blending state of GL so we can draw NanoVG
 ;; text (which blats the config) and then get it back for drawing
@@ -80,111 +66,6 @@
     (GL11/glEnable GL11/GL_BLEND)
     (GL11/glDisable GL11/GL_BLEND))
   (GL30/glBlendFuncSeparate src-rgb dst-rgb src-alpha dst-alpha))
-
-(defn window-size
-  []
-  ;; MemoryStack implements java.io.Closeable, so with-open will pop for us
-  (with-open [stack (MemoryStack/stackPush)]
-    ;; allocate two IntBuffers of size 1 each
-    (let [p-width (.mallocInt stack 1)
-          p-height (.mallocInt stack 1)]
-      ;; get the frameBuffer size info
-      (GLFW/glfwGetFramebufferSize ^long window p-width p-height)
-      ;; extract the values from the IntBuffers
-      [(.get p-width 0)
-       (.get p-height 0)])))
-
-(defn load-texture
-  [path]
-  ;; prepare buffers for width and height info
-  (with-open [stack (MemoryStack/stackPush)]
-    (let [w (.mallocInt stack 1)
-          h (.mallocInt stack 1)
-          cmp (.mallocInt stack 1)]
-      ;; tell STB to flip images on load if png origin differs
-      (STBImage/stbi_set_flip_vertically_on_load false)
-
-      ;; load the image (forge 4 channel RGBA), we're not using
-      ;; `cmp` (normally called `comp`) it grabs the number of
-      ;; channels (components) actually found in the original image.
-      (let [image (STBImage/stbi_load path w h cmp 4)]
-        (when-not image
-          (throw (RuntimeException.
-                  (str "Failed to load image '"
-                       path
-                       "': "
-                       (STBImage/stbi_failure_reason)))))
-        (let [tex-id (GL11/glGenTextures)]
-          (GL11/glBindTexture GL11/GL_TEXTURE_2D tex-id)
-          ;; upload to GPU
-          (GL11/glTexImage2D GL11/GL_TEXTURE_2D 0 GL11/GL_RGBA8 (.get w 0) (.get h 0) 0 GL11/GL_RGBA GL11/GL_UNSIGNED_BYTE image)
-
-          ;; set filtering
-          (GL11/glTexParameteri GL11/GL_TEXTURE_2D GL11/GL_TEXTURE_MIN_FILTER GL11/GL_LINEAR_MIPMAP_LINEAR)
-          (GL11/glTexParameteri GL11/GL_TEXTURE_2D GL11/GL_TEXTURE_MAG_FILTER GL11/GL_LINEAR)
-          ;; clamp edges
-          (GL11/glTexParameteri GL11/GL_TEXTURE_2D GL11/GL_TEXTURE_WRAP_S GL30/GL_CLAMP_TO_EDGE)
-          (GL11/glTexParameteri GL11/GL_TEXTURE_2D GL11/GL_TEXTURE_WRAP_T GL30/GL_CLAMP_TO_EDGE)
-
-          ;; generate mipmaps
-          (GL30/glGenerateMipmap GL11/GL_TEXTURE_2D)
-          
-          ;; cleanup
-          (STBImage/stbi_image_free image)
-          tex-id)))))
-
-(defn draw-bound-texture-quad
-  "draw the currently bound texture, used by `draw-texture-quad`, but
-  can also be used to manually bind a single texture, then draw it
-  multiple times as the binding is expensive."
-  [x y w h]
-  (GL11/glEnable GL11/GL_TEXTURE_2D)
-
-  ;; @NOTE we need to know the width and height of the spritesheet so
-  ;; we can draw a subsection. we need to specify the `glTexCoord2f`
-  ;; vlalues as floats in the range 0.0 - 1.0 wo we deivide desired
-  ;; pixel values by image dimensions.
-
-  ;; @TODO: currently ignoring params, hard-coding position, sizes,
-  ;; offsets etc.
-  (let [[x y :as pos] [100 100]
-        [w h :as draw-dims] [240 360]
-        [iw ih :as sprite-sheet-dims] [1680 1440]
-        ;; no offsets for now, start cutting at top left
-        [ox oy :as offsets] [0 0]
-        ;; left is x-offset / image-width
-        u0 (/ ox iw)
-        ;; top is y-offset / image-height
-        v0 (/ oy ih)
-        ;; right is (x-offset + window-width) / image-width
-        u1 (/ (+ ox w) iw)
-        ;; bottom is (y-offset + window-height) / image-height
-        v1 (/ (+ oy h) ih)]
-
-    ;; @TODO: need to make sure we're not using the colour from the
-    ;; bouncing rectangle
-    
-
-    (GL11/glBegin GL11/GL_QUADS)
-    ;; top-left
-    (GL11/glTexCoord2f u0 v0)
-    (GL11/glVertex2f x y)
-    ;; top-right
-    (GL11/glTexCoord2f u1 v0)
-    (GL11/glVertex2f (+ x w) y)
-    ;; bottom-right
-    (GL11/glTexCoord2f u1 v1)
-    (GL11/glVertex2f (+ x w) (+ y h))
-    ;; bottom-left
-    (GL11/glTexCoord2f u0 v1)
-    (GL11/glVertex2f x (+ y h))
-    (GL11/glEnd)))
-
-(defn draw-texture-quad
-  "bind a texture, then draw it"
-  [tex-id x y w h]
-  (GL11/glBindTexture GL11/GL_TEXTURE_2D tex-id)
-  (draw-bound-texture-quad x y w h))
 
 (defn cleanup-audio
   [{{:keys [source al-buffer context device]} :audio}]
@@ -285,7 +166,7 @@
   [{[w _] :size
     [x _] :pos
     :as s}]
-  (let [[max-w _] (window-size)]
+  (let [[max-w _] (u/window-size window)]
     (if (or (< x 0)
             (< max-w (+ x w)))
       (-> s
@@ -297,7 +178,7 @@
   [{[_ h] :size
     [_ y] :pos
     :as s}]
-  (let [[_ max-h] (window-size)]
+  (let [[_ max-h] (u/window-size window)]
     (if (or (< y 0)
             (< max-h (+ y h)))
       (-> s
@@ -320,11 +201,11 @@
                         [100 100]
                         [1680 1440]
                         ;; @TODO: preload assets and get them easily
-                        (load-texture "resources/img/captain.png"))
+                        (image/load-texture "resources/img/captain.png"))
    (sprite/animated-sprite :animated-captain
                            [600 100]
                            [240 360]
-                           (load-texture "resources/img/captain.png")
+                           (image/load-texture "resources/img/captain.png")
                            [1680 1440]
                            :animations {:none {:frames 1
                                                :y-offset 0
@@ -338,7 +219,13 @@
                                         :jump {:frames 7
                                                :y-offset 3
                                                :frame-delay 8}}
-                           :current-animation :run)])
+                           :current-animation :run
+                           :vel [2 -3]
+                           :update-fn (fn [s]
+                                        (-> s
+                                            sprite/update-animated-sprite
+                                            bounce-x
+                                            bounce-y)))])
 
 (defn init
   []
@@ -402,7 +289,7 @@
              actions [:released :pressed]]
          (prn (get buttons button) (get actions action))))))
 
-  ;; @TODO: could refactor to use `window-size`
+  ;; @TODO: could refactor to use `u/window-size`
   ;; get the thread stack and push a new frame
   (let [stack (MemoryStack/stackPush)
         p-width (.mallocInt stack 1)
@@ -483,27 +370,16 @@
 
 (defn draw-background
   []
-  (let [[bgr bgg bgb bga] (hex->rgb "#A499B3")]
+  (let [[bgr bgg bgb bga] (u/hex->rgb "#A499B3")]
     ;; set the clear colour
     (GL11/glClearColor bgr bgg bgb bga)
     ;; clear the frameBuffer
     (GL11/glClear (bit-or GL11/GL_COLOR_BUFFER_BIT GL11/GL_DEPTH_BUFFER_BIT))))
 
-(defn draw-rect
-  [x y w h r g b]
-  (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
-  (GL11/glColor3f r g b)
-  (GL11/glBegin GL11/GL_QUADS)
-  (GL11/glVertex2f x y)
-  (GL11/glVertex2f (+ x w) y)
-  (GL11/glVertex2f (+ x w) (+ y h))
-  (GL11/glVertex2f x (+ y h))
-  (GL11/glEnd))
-
 (defn draw-text
   [vg font]
   (let [old-state (capture-gl-state)]
-    (let [[window-w window-h] (window-size)]
+    (let [[window-w window-h] (u/window-size window)]
       (NanoVG/nvgBeginFrame vg window-w window-h 1)
       (NanoVG/nvgFontSize vg 64)
       (NanoVG/nvgFontFace vg "sans")

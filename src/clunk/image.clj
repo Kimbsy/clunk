@@ -100,39 +100,3 @@
   ;; only bind the texture once.
   (GL11/glBindTexture GL11/GL_TEXTURE_2D texture)
   (draw-bound-texture-quad pos parent-dims offsets draw-dims))
-
-
-;; 1. Unhandled java.lang.NullPointerException
-;;    Cannot invoke "java.lang.Character.charValue()" because "x" is null
-
-;;                    RT.java: 1241  clojure.lang.RT/intCast
-;;                  image.clj:   97  clunk.image/draw-image!
-;;                  image.clj:   93  clunk.image/draw-image!
-;;                 sprite.clj:   67  clunk.sprite/draw-image-sprite!
-;;                 sprite.clj:   65  clunk.sprite/draw-image-sprite!
-;;                 sprite.clj:  186  clunk.sprite/draw-scene-sprites!/fn
-;;                   core.clj: 2770  clojure.core/map/fn
-;;               LazySeq.java:   50  clojure.lang.LazySeq/force
-;;               LazySeq.java:   89  clojure.lang.LazySeq/realize
-;;               LazySeq.java:  106  clojure.lang.LazySeq/seq
-;;                    RT.java:  555  clojure.lang.RT/seq
-;;                   core.clj:  139  clojure.core/seq
-;;                   core.clj: 3141  clojure.core/dorun
-;;                   core.clj: 3156  clojure.core/doall
-;;                   core.clj: 3156  clojure.core/doall
-;;                 sprite.clj:  184  clunk.sprite/draw-scene-sprites!
-;;                 sprite.clj:  180  clunk.sprite/draw-scene-sprites!
-;;                   core.clj:  525  clunk.core/draw
-;;                   core.clj:  510  clunk.core/draw
-;;                   core.clj:  540  clunk.core/main-loop
-;;                   core.clj:  531  clunk.core/main-loop
-;;                   core.clj:  202  clunk.core/-main
-;;                   core.clj:  197  clunk.core/-main
-;;                RestFn.java:  400  clojure.lang.RestFn/invoke
-;;                       REPL:   43  clunk.core/eval13232
-;;                       REPL:   43  clunk.core/eval13232
-;;              Compiler.java: 7739  clojure.lang.Compiler/eval
-;;     interruptible_eval.clj:  106  nrepl.middleware.interruptible-eval/evaluator/run/fn
-;;     interruptible_eval.clj:  101  nrepl.middleware.interruptible-eval/evaluator/run
-;;                session.clj:  230  nrepl.middleware.session/session-exec/session-loop
-;;         SessionThread.java:   21  nrepl.SessionThread/run
