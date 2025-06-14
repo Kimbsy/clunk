@@ -64,37 +64,45 @@
           update-animation
           update-pos))
 
-;; @TODO: image drawing functions should respect sprite `:offsets`
+(defn draw-default-sprite!
+  "Draw a green square as a sprite placeholder."
+  [{[x y] :pos
+    [r g b] :color
+    [w h] :size
+    :as s}]
+  (let [[off-x off-y] (pos-offsets s)]
+    (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
+    (GL11/glColor3f r g b)
+    (GL11/glBegin GL11/GL_QUADS)
+    (GL11/glVertex2f (+ x off-x) (+ y off-y))
+    (GL11/glVertex2f (+ x w off-x) (+ y off-y))
+    (GL11/glVertex2f (+ x w off-x) (+ y h off-y))
+    (GL11/glVertex2f (+ x off-x) (+ y h off-y))
+    (GL11/glEnd)))
 
 (defn draw-bounds
   [{[x y] :pos
     [r g b] :debug-color
     bounds-fn :bounds-fn
     :as s}]
-  (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
-  (GL11/glColor3f r g b)
-  (GL11/glBegin GL11/GL_LINE_LOOP)
-  (doseq [[bx by] (bounds-fn s)]
-    (GL11/glVertex2f (+ x bx) (+ y by)))
-  (GL11/glEnd))
+  (let [[off-x off-y] (pos-offsets s)]
+    (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
+    (GL11/glColor3f r g b)
+    (GL11/glBegin GL11/GL_LINE_LOOP)
+    (doseq [[bx by] (bounds-fn s)]
+      (GL11/glVertex2f (+ x bx off-x) (+ y by off-y)))
+    (GL11/glEnd)))
 
-(defn draw-default-sprite!
-  "Draw a green square as a sprite placeholder."
-  [{[x y] :pos
-    [r g b] :color
-    [w h] :size}]
-  (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
-  (GL11/glColor3f r g b)
-  (GL11/glBegin GL11/GL_QUADS)
-  (GL11/glVertex2f x y)
-  (GL11/glVertex2f (+ x w) y)
-  (GL11/glVertex2f (+ x w) (+ y h))
-  (GL11/glVertex2f x (+ y h))
-  (GL11/glEnd))
+;; @TODO: this should be refactored into a general draw-rect function
+(defn draw-center
+  [{:keys [pos] :as s}]
+  (draw-default-sprite! {:pos pos :color [1 0 0] :size [40 2]})
+  (draw-default-sprite! {:pos pos :color [1 0 0] :size [2 40]}))
 
 (defn draw-image-sprite!
-  [{:keys [pos size image-texture] :as sprite}]
-  (image/draw-image! image-texture pos size))
+  [{:keys [pos size image-texture] :as s}]
+  (let [offsets (pos-offsets s)]
+    (image/draw-image! image-texture (map + pos offsets) size)))
 
 (defn draw-animated-sprite!
   [{:keys [pos
@@ -105,12 +113,14 @@
     [w h :as size] :size
     :as s}]
   (let [animation (current-animation (:animations s))
-        x-offset  (* animation-frame w)
-        y-offset  (* (:y-offset animation) h)]
+        sheet-x-offset  (* animation-frame w)
+        sheet-y-offset  (* (:y-offset animation) h)
+        offsets (pos-offsets s)]
     (image/draw-sub-image! spritesheet-texture
-                           pos
+                           (map + pos offsets)
                            spritesheet-size
-                           [x-offset y-offset]
+                           [sheet-x-offset
+                            sheet-y-offset]
                            size)))
 
 (defn set-animation
@@ -273,7 +283,8 @@
      (map (fn [{:keys [draw-fn debug?] :as s}]
             (draw-fn s)
             (when (or global-debug? debug?)
-              (draw-bounds s)))
+              (draw-bounds s)
+              (draw-center s)))
           sprites))))
 
 (defn update-sprites

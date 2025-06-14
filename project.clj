@@ -4,6 +4,7 @@
   :license {:name "MIT License"
             :url "https://opensource.org/licenses/MIT"}
   :dependencies [[org.clojure/clojure "1.12.1"]
+                 [org.clojure/math.combinatorics "0.3.0"]
                  [org.lwjgl/lwjgl "3.3.6"]
                  [org.lwjgl/lwjgl "3.3.6" :classifier "natives-linux"]
                  [org.lwjgl/lwjgl-assimp "3.3.6"]
