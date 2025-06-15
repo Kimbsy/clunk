@@ -25,7 +25,8 @@
             [clunk.image :as image]
             [clunk.util :as u]
             [clunk.palette :as p]
-            [clunk.collision :as collision]))
+            [clunk.collision :as collision]
+            [clunk.tween :as tween]))
 
 ;; FEATURES
 
@@ -173,6 +174,25 @@
                              :vel [2 -3]
                              :debug? true
                              :debug-color p/cyan)
+     (-> (sprite/sprite :tween-example
+                       [600 250]
+                       :color p/magenta)
+         (tween/add-tween
+          (tween/tween :pos
+                       100
+                       :update-fn tween/tween-x-fn
+                       :yoyo? true
+                       :yoyo-update-fn tween/tween-x-yoyo-fn
+                       :repeat-times ##Inf))
+         (tween/add-tween
+          (tween/tween :pos
+                       -200
+                       :step-count 50
+                       :easing-fn tween/ease-out-quad
+                       :update-fn tween/tween-y-fn
+                       :yoyo? true
+                       :yoyo-update-fn tween/tween-y-yoyo-fn
+                       :repeat-times ##Inf)))
 
      ;; world bounds
      (sprite/sprite :wall-y [0 -100]
@@ -348,12 +368,14 @@
       (let [audio (init-audio)]
         (swap! state #(assoc % :audio audio))))
 
+    ;; add sprites
     (let [sprites (initial-sprites)]
       (swap! state #(update-in %
                                [:scenes :demo :sprites]
                                concat
-                               sprites)))
+                               sprites)))    
 
+    ;; add colliders
     (let [colliders (initial-colliders)]
       (swap! state #(update-in %
                                [:scenes :demo :colliders]
@@ -367,7 +389,8 @@
   [{:keys [vel] :as st}]
   (-> st
       sprite/update-state
-      collision/update-state))
+      collision/update-state
+      tween/update-state))
 
 (defn draw-background!
   [[r g b a]]

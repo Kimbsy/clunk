@@ -5,6 +5,8 @@
 
 ;; @TODO: would be nice to be able to flip in x or y when drawing images
 
+;; @TODO: how do we do image rotation in lwjgl?
+
 (defn load-texture
   [path]
   ;; prepare buffers for width and height info
