@@ -39,11 +39,6 @@
 ;; @TODO: need to be able to handle exceptions a bit better, currently
 ;; it kills the repl
 
-
-;; @TODO: remove global vars
-(def initial-window-width 1200)
-(def initial-window-height 800)
-
 (def audio? false)
 
 (def initial-state
@@ -140,113 +135,10 @@
              :context context
              :device device}))))))
 
-(defn initial-sprites
-  []
-  (let [[window-w window-h] (u/window-size (:window @state))]
-    [(sprite/sprite :example
-                    [500 50]
-                    :vel [3 3]
-                    :color [0 1 0])
-     (sprite/image-sprite :captain-sheet
-                          [100 100]
-                          [1680 1440]
-                          ;; @TODO: preload assets and get them easily
-                          (image/load-texture "resources/img/captain.png")
-                          :offsets [:left :top])
-     (sprite/animated-sprite :animated-captain
-                             [600 500]
-                             [240 360]
-                             (image/load-texture "resources/img/captain.png")
-                             [1680 1440]
-                             :animations {:none {:frames 1
-                                                 :y-offset 0
-                                                 :frame-delay 100}
-                                          :idle {:frames 4
-                                                 :y-offset 1
-                                                 :frame-delay 15}
-                                          :run  {:frames 4
-                                                 :y-offset 2
-                                                 :frame-delay 8}
-                                          :jump {:frames 7
-                                                 :y-offset 3
-                                                 :frame-delay 8}}
-                             :current-animation :none
-                             :vel [2 -3]
-                             :debug? true
-                             :debug-color p/cyan)
-     (-> (sprite/sprite :tween-example
-                       [600 250]
-                       :color p/magenta)
-         (tween/add-tween
-          (tween/tween :pos
-                       100
-                       :update-fn tween/tween-x-fn
-                       :yoyo? true
-                       :yoyo-update-fn tween/tween-x-yoyo-fn
-                       :repeat-times ##Inf))
-         (tween/add-tween
-          (tween/tween :pos
-                       -200
-                       :step-count 50
-                       :easing-fn tween/ease-out-quad
-                       :update-fn tween/tween-y-fn
-                       :yoyo? true
-                       :yoyo-update-fn tween/tween-y-yoyo-fn
-                       :repeat-times ##Inf)))
-
-     ;; world bounds
-     (sprite/sprite :wall-y [0 -100]
-                    :size [window-w 100]
-                    :update-fn identity
-                    :offsets [:left :top])
-     (sprite/sprite :wall-x [window-w 0]
-                    :size [100 window-h]
-                    :update-fn identity
-                    :offsets [:left :top])
-     (sprite/sprite :wall-y [0 window-h]
-                    :size [window-w 100]
-                    :update-fn identity
-                    :offsets [:left :top])
-     (sprite/sprite :wall-x [-100 0]
-                    :size [100 window-h]
-                    :update-fn identity
-                    :offsets [:left :top])]))
-
-(defn wall-colliders
-  [sprite-group]
-  [(collision/collider
-    sprite-group
-    :wall-x
-    (fn [s _]
-      (update-in s [:vel 0] * -1))
-    collision/identity-collide-fn)
-   (collision/collider
-    sprite-group
-    :wall-y
-    (fn [s _]
-      (update-in s [:vel 1] * -1))
-    collision/identity-collide-fn)])
-
-(defn initial-colliders
-  []
-  (concat
-   [(collision/collider
-     :animated-captain
-     :example
-     (fn [{:keys [current-animation] :as animated-captain} _example-sprite]
-       (-> animated-captain
-           (assoc :pos [600 500])
-           (sprite/set-animation (rand-nth (remove #{current-animation}
-                                                   [:none :idle :run :jump])))))
-     (fn [example-sprite _animated-captain]
-       (-> example-sprite
-           (assoc :pos [700 100])
-           (assoc :color [(rand) (rand) (rand)]))))]
-   (wall-colliders :animated-captain)
-   (wall-colliders :example)))
-
 (defn init
-  []
+  [{[initial-window-width initial-window-height] :size
+    :as game}]
+  ;; @TODO: still needed?
   ;; reset the game state
   (reset! state initial-state)
 
@@ -368,29 +260,8 @@
       (let [audio (init-audio)]
         (swap! state #(assoc % :audio audio))))
 
-    ;; add sprites
-    (let [sprites (initial-sprites)]
-      (swap! state #(update-in %
-                               [:scenes :demo :sprites]
-                               concat
-                               sprites)))    
-
-    ;; add colliders
-    (let [colliders (initial-colliders)]
-      (swap! state #(update-in %
-                               [:scenes :demo :colliders]
-                               concat
-                               colliders)))
-
     ;; start polling for events
     (start-event-polling)))
-
-(defn update-state
-  [{:keys [vel] :as st}]
-  (-> st
-      sprite/update-state
-      collision/update-state
-      tween/update-state))
 
 (defn draw-background!
   [[r g b a]]
@@ -399,7 +270,8 @@
   ;; clear the frameBuffer
   (GL11/glClear (bit-or GL11/GL_COLOR_BUFFER_BIT GL11/GL_DEPTH_BUFFER_BIT)))
 
-(defn draw-text
+;; @TODO: this should be a text-sprite
+(defn draw-text!
   [vg font]
   (let [old-state (capture-gl-state)]
     (let [[window-w window-h] (u/window-size (:window @state))]
@@ -415,23 +287,59 @@
       (NanoVG/nvgEndFrame vg))
     (restore-gl-state old-state)))
 
-(defn draw
-  [{:keys [w h captain vg font]
-    [x y] :pos
-    [vx vy] :vel
-    [r g b] :color
-    :as st}]
-  ;; draw background
-  (draw-background! (p/hex->rgb "#1282A2"))
+(defn update-game
+  "Update the game state based on the current scenes `:update-fn`."
+  [{:keys [scenes current-scene] :as state}]
+  (if-let [scene-update-fn (get-in scenes [current-scene :update-fn])]
+    (scene-update-fn state)
+    state))
 
-  ;; draw some text
-  (draw-text vg font)
+;; @TODO: do this better
+(defn default-draw!
+  [{:keys [vg font window current-scene] :as state}]
+  (draw-background! (conj p/black 0))
+  (let [old-state (capture-gl-state)]
+    (let [[window-w window-h] (u/window-size window)]
+      (NanoVG/nvgBeginFrame vg window-w window-h 1)
+      (NanoVG/nvgFontSize vg 36)
+      (NanoVG/nvgFontFace vg "sans")
+      (with-open [stack (MemoryStack/stackPush)]
+        (let [white (NVGColor/malloc stack)
+              f0 (float 0)
+              f1 (float 1)]
+          (NanoVG/nvgFillColor vg (NanoVG/nvgRGBAf f1 f1 f1 f1 white))))
+      (NanoVG/nvgText vg
+                      (float 100)
+                      (float (/ window-h 2))
+                      (str "No draw-fn found for current scene " current-scene) )
+      (NanoVG/nvgEndFrame vg))
+    (restore-gl-state old-state)))
 
-  ;; draw he current scene sprites
-  (sprite/draw-scene-sprites! st)
+(defn draw-game!
+  "Draw the game using the current scenes `:draw-fn`."
+  [{:keys [scenes current-scene] :as state}]
+  (if-let [scene-draw-fn (get-in scenes [current-scene :draw-fn])]
+    (scene-draw-fn state)
+    (default-draw! state))
+  (GLFW/glfwSwapBuffers (:window state)))
 
-  ;; swap the colour buffers
-  (GLFW/glfwSwapBuffers (:window @state)))
+(defn default-on-close
+  [& _]
+  (prn "******** SHUTTING DOWN ********"))
+
+(def default-opts
+  {:title "Example game"
+   :size [800 600]
+   :update-fn update-game
+   :draw-fn draw-game!
+   :on-close-fn default-on-close})
+
+(defn game
+  [{:keys [init-scenes-fn current-scene]
+    :or {init-scenes-fn (constantly {})
+         current-scene :none}
+    :as override-opts}]
+  (merge default-opts override-opts))
 
 ;;@TODO: can we make this more functional? maybe not?
 (defn main-loop
@@ -440,21 +348,25 @@
   ;; window or has pressed the ESC key.
   (while (not (GLFW/glfwWindowShouldClose (:window @state)))
     ;; update the state
-    (swap! state update-state)
+    (swap! state update-game)
 
     ;; draw everything
-    (draw @state)))
+    (draw-game! @state)))
 
-(defn -main
-  [& args]
+(defn start!
+  [{:keys [init-scenes-fn current-scene] :as game}]
   (println "Hello LWJGL! Version:" (Version/getVersion))
 
-  (init)
+  (init game)
+
+  (swap! state merge game {:scenes (init-scenes-fn @state)})
 
   (try
     (main-loop)
     (catch Exception e
       (prn e)))
+
+  ;; @TODO: call game defined `:on-close-fn`
 
   ;; clean up audio stuff on close
   (when audio?
@@ -468,3 +380,9 @@
   (GLFW/glfwTerminate)
   (-> (GLFW/glfwSetErrorCallback nil)
       .free))
+
+(comment
+
+  (clunk.example-game/main)
+
+  )
