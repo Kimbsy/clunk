@@ -310,16 +310,11 @@
 (defn process-event
   [{:keys [current-scene scenes] :as state}
    {:keys [event-type] :as e}]
-  (let [{:keys [key-fns
-                mouse-button-fns
-                mouse-movement-fns]
-         :or {key-fns []
-              mouse-button-fns []
-              mouse-movement-fns []}} (current-scene scenes)
-        applicable-fns (case event-type
-                         :key key-fns
-                         :mouse-button mouse-button-fns
-                         :mouse-movement mouse-movement-fns)]
+  (let [scene (get scenes current-scene)
+        kw (keyword (str (name event-type) "-fns"))
+        _ (prn kw)
+        applicable-fns (get scene kw)]
+    (prn applicable-fns)
     (reduce (fn [acc f]
               (f acc e))
             state

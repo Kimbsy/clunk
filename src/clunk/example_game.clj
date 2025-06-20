@@ -126,27 +126,37 @@
 
 (defn kp1
   [state e]
-  (prn "kp1" e)
+  ; (prn "kp1" e)
   state)
 
 (defn kp2
   [state e]
-  (prn "kp2" e)
+  ;;  (prn "kp2" e)
+  ;; if we pres space, enqueue a custom event
+  (when (= 32 (:k e))
+    (c/enqueue-event! {:event-type :other-event
+                       :data {:a 1 :b 2}}))
   state)
 
 (defn m1
   [state e]
-  (prn "m1" e)
+  ;; (prn "m1" e)
   state)
 
 (defn m2
   [state e]
-  (prn "m2" e)
+  ;; (prn "m2" e)
   state)
 
 (defn mm
   [state e]
-  (prn "mm" e)
+  ;; (prn "mm" e)
+  state)
+
+;; handle custom events
+(defn other
+  [state e]
+  (prn (:data e))
   state)
 
 (defn init-scenes
@@ -157,7 +167,9 @@
           :draw-fn draw-demo!
           :key-fns [kp1 kp2]
           :mouse-button-fns [m1 m2]
-          :mouse-movement-fns [mm]}})
+          :mouse-movement-fns [mm]
+          ;; define some custom event handlers
+          :other-event-fns [other]}})
 
 (def game (c/game {:title "Example Clunk Game"
                    :size [1200 800]
