@@ -19,7 +19,6 @@
                  [org.lwjgl/lwjgl-stb "3.3.6" :classifier "natives-linux"]
                  [org.lwjgl/lwjgl-nanovg "3.3.6"]
                  [org.lwjgl/lwjgl-nanovg "3.3.6" :classifier "natives-linux"]]
-  :main ^:skip-aot clunk.core
   :target-path "target/%s"
   :profiles {:uberjar {:aot :all
                        :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}})

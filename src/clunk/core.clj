@@ -1,5 +1,4 @@
 (ns clunk.core
-  (:gen-class)
   (:import (java.nio ByteBuffer IntBuffer ShortBuffer)
            (org.lwjgl Version)
            (org.lwjgl.glfw Callbacks
@@ -48,6 +47,18 @@
    :scenes {:demo {:sprites []}}
    :current-scene :demo
    :debug? false})
+
+(def empty-queue clojure.lang.PersistentQueue/EMPTY)
+(def events (atom empty-queue))
+
+(defn enqueue-event!
+  [e]
+  (swap! events conj e))
+
+(defn drain-events!
+  []
+  (let [[es _] (swap-vals! events (constantly empty-queue))]
+    es))
 
 ;; capture and restore the blending state of GL so we can draw NanoVG
 ;; text (which blats the config) and then get it back for drawing
@@ -173,33 +184,37 @@
          window
          (reify GLFWKeyCallbackI
            (invoke [this win k scancode action mods]
+             ;; enqueue the event to be processed
+             (enqueue-event! {:event-type :key
+                              :k k
+                              :scancode scancode
+                              :action action
+                              :mods mods})
              ;; quit on ESC
              (when (and (= k GLFW/GLFW_KEY_ESCAPE)
                         (= action GLFW/GLFW_RELEASE))
                ;; we will detect this in the window loop
                (GLFW/glfwSetWindowShouldClose window true)))))
 
-        ;; @TODO: need a way of handling user inputs in a functional(-ish) way!
-        ;; ;; when the mouse moves in the window set the position of the
-        ;; ;; example sprite to the cursor
-        ;; (GLFW/glfwSetCursorPosCallback
-        ;;  window
-        ;;  (reify GLFWCursorPosCallbackI
-        ;;    (invoke [this win xpos ypos]
-        ;;      (swap! state (fn [st]
-        ;;                     (sprite/update-sprites
-        ;;                      st
-        ;;                      (sprite/has-group :example)
-        ;;                      #(assoc % :pos [xpos ypos])))))))
+        ;; when the mouse moves in the window set the position of the
+        ;; example sprite to the cursor
+        (GLFW/glfwSetCursorPosCallback
+         window
+         (reify GLFWCursorPosCallbackI
+           (invoke [this win xpos ypos]
+             (enqueue-event! {:event-type :mouse-movement
+                              :xpos xpos
+                              :ypos ypos}))))
 
         ;; when we press/release a mouse button print it
         (GLFW/glfwSetMouseButtonCallback
          window
          (reify GLFWMouseButtonCallbackI
            (invoke [this win button action mods]
-             (let [buttons [:left :right :middle]
-                   actions [:released :pressed]]
-               (prn (get buttons button) (get actions action))))))
+             (enqueue-event! {:event-type :mouse-button
+                              :button button
+                              :action action
+                              :mods mods}))))
 
         (let [[window-w window-h] (u/window-size window)
               ;; get the resolution of the primary monitor
@@ -249,7 +264,7 @@
               font (NanoVG/nvgCreateFont vg "sans" "resources/font/UbuntuMono-Regular.ttf")
               ;; stick them in the state
               state (-> state
-                        (assoc :v vg)
+                        (assoc :vg vg)
                         (assoc :font font))]
 
           ;; enable transprency for drawing images
@@ -290,12 +305,36 @@
 ;;       (NanoVG/nvgEndFrame vg))
 ;;     (restore-gl-state old-state)))
 
+;; @TODO: supply default key/mouse functions for updating some
+;; `:currently-held` keys/buttons field
+(defn process-event
+  [{:keys [current-scene scenes] :as state}
+   {:keys [event-type] :as e}]
+  (let [{:keys [key-fns
+                mouse-button-fns
+                mouse-movement-fns]
+         :or {key-fns []
+              mouse-button-fns []
+              mouse-movement-fns []}} (current-scene scenes)
+        applicable-fns (case event-type
+                         :key key-fns
+                         :mouse-button mouse-button-fns
+                         :mouse-movement mouse-movement-fns)]
+    (reduce (fn [acc f]
+              (f acc e))
+            state
+            applicable-fns)))
+
 (defn update-game
   "Update the game state based on the current scenes `:update-fn`."
   [{:keys [scenes current-scene] :as state}]
-  (if-let [scene-update-fn (get-in scenes [current-scene :update-fn])]
-    (scene-update-fn state)
-    state))
+  (let [unprocessed-events (drain-events!)
+        scene-update-fn (or (get-in scenes [current-scene :update-fn])
+                            identity)]
+    (scene-update-fn
+     (reduce process-event
+             state
+             unprocessed-events))))
 
 ;; @TODO: do this better
 (defn default-draw!
@@ -312,9 +351,9 @@
               f1 (float 1)]
           (NanoVG/nvgFillColor vg (NanoVG/nvgRGBAf f1 f1 f1 f1 white))))
       (NanoVG/nvgText vg
-                      (float 100)
+                      (float 10)
                       (float (/ window-h 2))
-                      (str "No draw-fn found for current scene " current-scene) )
+                      (str "No draw-fn found for current scene " current-scene))
       (NanoVG/nvgEndFrame vg))
     (restore-gl-state old-state)))
 
@@ -335,14 +374,13 @@
    :size [800 600]
    :update-fn update-game
    :draw-fn draw-game!
-   :on-close-fn default-on-close})
+   :on-close-fn default-on-close
+   :init-scenes-fn (constantly {})
+   :current-scene :none})
 
 (defn game
   "Create a game config map"
-  [{:keys [init-scenes-fn current-scene]
-    :or {init-scenes-fn (constantly {})
-         current-scene :none}
-    :as override-opts}]
+  [override-opts]
   (merge default-opts override-opts))
 
 (defn main-loop
