@@ -323,11 +323,11 @@
 
 (defn draw-game!
   "Draw the game using the current scenes `:draw-fn`."
-  [{:keys [scenes current-scene] :as state}]
+  [{:keys [window scenes current-scene] :as state}]
   (if-let [scene-draw-fn (get-in scenes [current-scene :draw-fn])]
     (scene-draw-fn state)
     (default-draw! state))
-  (GLFW/glfwSwapBuffers (:window state)))
+  (GLFW/glfwSwapBuffers window))
 
 (defn default-on-close
   [& _]
@@ -361,9 +361,7 @@
 
 (defn start!
   [{:keys [init-scenes-fn current-scene audio?] :as game}]
-  (let [initialised-lwjgl (init game)
-        window (:window initialised-lwjgl)
-        audio (:audio initialised-lwjgl)
+  (let [{:keys [window audio] :as initialised-lwjgl} (init game)
         scenes (init-scenes-fn initialised-lwjgl)
         state (merge initialised-lwjgl {:scenes scenes})]
     (try

@@ -44,9 +44,16 @@
                              :vel [2 -3]
                              :debug? true
                              :debug-color p/cyan)
-     (-> (sprite/sprite :tween-example
-                        [600 250]
-                        :color p/magenta)
+     (-> (sprite/image-sprite :example-image
+                              (u/center window)
+                              [322 346]
+                              (image/load-texture "resources/img/big-present.png")
+                              :debug? true)
+         (tween/add-tween
+          (tween/tween :rotation
+                       360
+                       :yoyo? true
+                       :repeat-times ##Inf))
          (tween/add-tween
           (tween/tween :pos
                        100

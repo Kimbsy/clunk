@@ -18,6 +18,11 @@
       [(.get p-width 0)
        (.get p-height 0)])))
 
+(defn center
+  [window]
+  (map #(/ % 2)
+       (window-size window)))
+
 ;;;; Geometry helpers
 
 (defn poly-lines

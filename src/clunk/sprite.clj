@@ -121,16 +121,17 @@
   (draw-default-sprite! {:pos pos :color [1 0 0] :size [2 40]}))
 
 (defn draw-image-sprite!
-  [{:keys [pos size image-texture] :as s}]
+  [{:keys [pos size image-texture rotation] :as s}]
   (let [offsets (pos-offsets s)]
-    (image/draw-image! image-texture (map + pos offsets) size)))
+    (image/draw-image! image-texture (map + pos offsets) size rotation)))
 
 (defn draw-animated-sprite!
   [{:keys [pos
            spritesheet-texture
            spritesheet-size
            current-animation
-           animation-frame]
+           animation-frame
+           rotation]
     [w h :as size] :size
     :as s}]
   (let [animation (current-animation (:animations s))
@@ -142,7 +143,8 @@
                            spritesheet-size
                            [sheet-x-offset
                             sheet-y-offset]
-                           size)))
+                           size
+                           rotation)))
 
 (defn set-animation
   [s animation]
@@ -199,10 +201,10 @@
 
 ;; @TODO: geometry-sprite
 
-;; @TODO: how do we do rotation?
 (defn image-sprite
   [sprite-group pos size image-texture &
-   {:keys [vel
+   {:keys [rotation
+           vel
            update-fn
            draw-fn
            points
@@ -211,7 +213,8 @@
            debug?
            debug-color
            extra]
-    :or {vel [0 0]
+    :or {rotation 0
+         vel [0 0]
          update-fn update-pos
          draw-fn draw-image-sprite!
          offsets [:center]
@@ -222,6 +225,7 @@
    (sprite sprite-group pos)
    {:size size
     :image-texture image-texture
+    :rotation rotation
     :vel vel
     :update-fn update-fn
     :draw-fn draw-fn
@@ -237,7 +241,8 @@
 
 (defn animated-sprite
   [sprite-group pos size spritesheet-texture spritesheet-size &
-   {:keys [vel
+   {:keys [rotation
+           vel
            update-fn
            draw-fn
            points
@@ -265,6 +270,7 @@
    {:size size
     :spritesheet-texture spritesheet-texture
     :spritesheet-size spritesheet-size
+    :rotation rotation
     :vel vel
     :animated? true
     :update-fn update-fn
@@ -302,6 +308,7 @@
     (GL11/glDisable GL11/GL_BLEND))
   (GL30/glBlendFuncSeparate src-rgb dst-rgb src-alpha dst-alpha))
 
+;; @TODO: respect rotation
 (defn draw-text-sprite!
   [{:keys [window vg vg-color default-font] :as state}
    {:keys [pos content font font-size color] :as s}]
@@ -321,7 +328,8 @@
 
 (defn text-sprite
   [sprite-group pos content &
-   {:keys [vel
+   {:keys [rotation
+           vel
            update-fn
            draw-fn
            points
@@ -353,6 +361,7 @@
     ;; @TODO: collision bounds for text are more complex than this
     :size [(* (count content) font-size 0.5) font-size]
     :color color
+    :rotation rotation
     :vel vel
     :update-fn update-fn
     :draw-fn draw-fn
