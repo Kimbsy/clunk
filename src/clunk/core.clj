@@ -256,7 +256,6 @@
           (GL30/glBlendFuncSeparate GL11/GL_SRC_ALPHA GL11/GL_ONE_MINUS_SRC_ALPHA GL11/GL_ONE GL11/GL_ONE_MINUS_SRC_ALPHA)
 
           ;; optionally start audio
-          (prn audio?)
           (let [audio (when audio? (init-audio))
                 state (assoc state :audio audio)]
 
@@ -280,9 +279,7 @@
    {:keys [event-type] :as e}]
   (let [scene (get scenes current-scene)
         kw (keyword (str (name event-type) "-fns"))
-        _ (prn kw)
         applicable-fns (get scene kw)]
-    (prn applicable-fns)
     (reduce (fn [acc f]
               (f acc e))
             state
@@ -364,9 +361,7 @@
 
 (defn start!
   [{:keys [init-scenes-fn current-scene audio?] :as game}]
-  (prn audio?)
   (let [initialised-lwjgl (init game)
-        _ (prn initialised-lwjgl)
         window (:window initialised-lwjgl)
         audio (:audio initialised-lwjgl)
         scenes (init-scenes-fn initialised-lwjgl)
