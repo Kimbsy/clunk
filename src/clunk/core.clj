@@ -39,8 +39,6 @@
 ;; @TODO: need to be able to handle exceptions a bit better, currently
 ;; it kills the repl
 
-(def audio? false)
-
 ;; @TODO pare this down
 (def initial-state
   {:window nil
@@ -59,23 +57,6 @@
   []
   (let [[es _] (swap-vals! events (constantly empty-queue))]
     es))
-
-;; capture and restore the blending state of GL so we can draw NanoVG
-;; text (which blats the config) and then get it back for drawing
-;; images/shapes.
-(defn capture-gl-state
-  []
-  {:src-rgb (GL11/glGetInteger GL30/GL_BLEND_SRC_RGB)
-   :src-alpha (GL11/glGetInteger GL30/GL_BLEND_SRC_ALPHA)
-   :dst-rgb (GL11/glGetInteger GL14/GL_BLEND_DST_RGB)
-   :dst-alpha (GL11/glGetInteger GL11/GL_DST_ALPHA)
-   :blend-enabled? (GL11/glIsEnabled GL11/GL_BLEND)})
-(defn restore-gl-state
-  [{:keys [src-rgb src-alpha dst-rgb dst-alpha blend-enabled?]}]
-  (if blend-enabled?
-    (GL11/glEnable GL11/GL_BLEND)
-    (GL11/glDisable GL11/GL_BLEND))
-  (GL30/glBlendFuncSeparate src-rgb dst-rgb src-alpha dst-alpha))
 
 (defn cleanup-audio
   [{:keys [source al-buffer context device]}]
@@ -147,8 +128,10 @@
              :device device}))))))
 
 ;; @TODO: split this up into functions and do a (-> state ....) thread
+;; @TODO: catch initialisation exceptions, and shut down gracefully
 (defn init
-  [{[initial-window-width initial-window-height] :size
+  [{:keys [audio?]
+    [initial-window-width initial-window-height] :size
     :as game-config}]
   (let [state game-config]
     ;; set up an error callback, the default implementation will print
@@ -265,13 +248,15 @@
               ;; stick them in the state
               state (-> state
                         (assoc :vg vg)
-                        (assoc :font font))]
+                        (assoc :vg-color (NVGColor/create))
+                        (assoc :default-font font))]
 
           ;; enable transprency for drawing images
           (GL11/glEnable GL11/GL_BLEND)
           (GL30/glBlendFuncSeparate GL11/GL_SRC_ALPHA GL11/GL_ONE_MINUS_SRC_ALPHA GL11/GL_ONE GL11/GL_ONE_MINUS_SRC_ALPHA)
 
           ;; optionally start audio
+          (prn audio?)
           (let [audio (when audio? (init-audio))
                 state (assoc state :audio audio)]
 
@@ -287,23 +272,6 @@
   (GL11/glClearColor r g b a)
   ;; clear the frameBuffer
   (GL11/glClear (bit-or GL11/GL_COLOR_BUFFER_BIT GL11/GL_DEPTH_BUFFER_BIT)))
-
-;; ;; @TODO: this should be a text-sprite, the `:vg` from state should be closured
-;; (defn draw-text!
-;;   [state vg font]
-;;   (let [old-state (capture-gl-state)]
-;;     (let [[window-w window-h] (u/window-size (:window state))]
-;;       (NanoVG/nvgBeginFrame vg window-w window-h 1)
-;;       (NanoVG/nvgFontSize vg 64)
-;;       (NanoVG/nvgFontFace vg "sans")
-;;       (with-open [stack (MemoryStack/stackPush)]
-;;         (let [white (NVGColor/malloc stack)
-;;               f0 (float 0)
-;;               f1 (float 1)]
-;;           (NanoVG/nvgFillColor vg (NanoVG/nvgRGBAf f1 f1 f1 f1 white))))
-;;       (NanoVG/nvgText vg (float 50) (float 175) "Hello NanoVG!" )
-;;       (NanoVG/nvgEndFrame vg))
-;;     (restore-gl-state old-state)))
 
 ;; @TODO: supply default key/mouse functions for updating some
 ;; `:currently-held` keys/buttons field
@@ -333,24 +301,28 @@
 
 ;; @TODO: do this better
 (defn default-draw!
-  [{:keys [vg font window current-scene] :as state}]
+  [{:keys [vg default-font window current-scene] :as state}]
   (draw-background! (conj p/black 0))
-  (let [old-state (capture-gl-state)]
-    (let [[window-w window-h] (u/window-size window)]
-      (NanoVG/nvgBeginFrame vg window-w window-h 1)
-      (NanoVG/nvgFontSize vg 36)
-      (NanoVG/nvgFontFace vg "sans")
-      (with-open [stack (MemoryStack/stackPush)]
-        (let [white (NVGColor/malloc stack)
-              f0 (float 0)
-              f1 (float 1)]
-          (NanoVG/nvgFillColor vg (NanoVG/nvgRGBAf f1 f1 f1 f1 white))))
-      (NanoVG/nvgText vg
-                      (float 10)
-                      (float (/ window-h 2))
-                      (str "No draw-fn found for current scene " current-scene))
-      (NanoVG/nvgEndFrame vg))
-    (restore-gl-state old-state)))
+
+  ;; @TODO: draw a text sprite
+  
+  ;; (let [old-state (capture-gl-state)]
+  ;;   (let [[window-w window-h] (u/window-size window)]
+  ;;     (NanoVG/nvgBeginFrame vg window-w window-h 1)
+  ;;     (NanoVG/nvgFontSize vg 36)
+  ;;     (NanoVG/nvgFontFace vg "sans")
+  ;;     (with-open [stack (MemoryStack/stackPush)]
+  ;;       (let [white (NVGColor/malloc stack)
+  ;;             f0 (float 0)
+  ;;             f1 (float 1)]
+  ;;         (NanoVG/nvgFillColor vg (NanoVG/nvgRGBAf f1 f1 f1 f1 white))))
+  ;;     (NanoVG/nvgText vg
+  ;;                     (float 10)
+  ;;                     (float (/ window-h 2))
+  ;;                     (str "No draw-fn found for current scene " current-scene))
+  ;;     (NanoVG/nvgEndFrame vg))
+  ;;   (restore-gl-state old-state))
+  )
 
 (defn draw-game!
   "Draw the game using the current scenes `:draw-fn`."
@@ -371,7 +343,8 @@
    :draw-fn draw-game!
    :on-close-fn default-on-close
    :init-scenes-fn (constantly {})
-   :current-scene :none})
+   :current-scene :none
+   :audio? true})
 
 (defn game
   "Create a game config map"
@@ -379,19 +352,21 @@
   (merge default-opts override-opts))
 
 (defn main-loop
-  [st]
+  [state]
   ;; update the state
-  (let [new-st (update-game st)]
+  (let [new-state (update-game state)]
 
     ;; draw everything
-    (draw-game! new-st)
+    (draw-game! new-state)
 
     ;; return the new state
-    new-st))
+    new-state))
 
 (defn start!
-  [{:keys [init-scenes-fn current-scene] :as game}]
+  [{:keys [init-scenes-fn current-scene audio?] :as game}]
+  (prn audio?)
   (let [initialised-lwjgl (init game)
+        _ (prn initialised-lwjgl)
         window (:window initialised-lwjgl)
         audio (:audio initialised-lwjgl)
         scenes (init-scenes-fn initialised-lwjgl)
@@ -403,8 +378,8 @@
         :initk state
         ;; run the rendering loop until the user has attempted to
         ;; close the window or has pressed the ESC key.
-        :somef (fn [st]
-                 (not (GLFW/glfwWindowShouldClose (:window st))))))
+        :somef (fn [{:keys [window]}]
+                 (not (GLFW/glfwWindowShouldClose window)))))
       (catch Exception e
         (prn e)))
 

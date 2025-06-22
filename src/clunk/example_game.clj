@@ -1,4 +1,7 @@
 (ns clunk.example-game
+  "Temporary example game namespace, useful as we don't need to install clunk locally to test changes.
+
+  Eventually we should remove this and juts have a bunch of games in `examples`."
   (:require [clunk.core :as c]
             [clunk.sprite :as sprite]
             [clunk.util :as u]
@@ -8,75 +11,84 @@
             [clunk.image :as image]))
 
 (defn sprites
-  [[window-w window-h]]
-  [(sprite/sprite :example
-                  [500 50]
-                  :vel [3 3]
-                  :color [0 1 0])
-   (sprite/image-sprite :captain-sheet
-                        [100 100]
-                        [1680 1440]
-                        ;; @TODO: preload assets and get them easily
-                        (image/load-texture "resources/img/captain.png")
-                        :offsets [:left :top])
-   (sprite/animated-sprite :animated-captain
-                           [600 500]
-                           [240 360]
-                           (image/load-texture "resources/img/captain.png")
-                           [1680 1440]
-                           :animations {:none {:frames 1
-                                               :y-offset 0
-                                               :frame-delay 100}
-                                        :idle {:frames 4
-                                               :y-offset 1
-                                               :frame-delay 15}
-                                        :run  {:frames 4
-                                               :y-offset 2
-                                               :frame-delay 8}
-                                        :jump {:frames 7
-                                               :y-offset 3
-                                               :frame-delay 8}}
-                           :current-animation :none
-                           :vel [2 -3]
-                           :debug? true
-                           :debug-color p/cyan)
-   (-> (sprite/sprite :tween-example
-                     [600 250]
-                     :color p/magenta)
-       (tween/add-tween
-        (tween/tween :pos
-                     100
-                     :update-fn tween/tween-x-fn
-                     :yoyo? true
-                     :yoyo-update-fn tween/tween-x-yoyo-fn
-                     :repeat-times ##Inf))
-       (tween/add-tween
-        (tween/tween :pos
-                     -200
-                     :step-count 50
-                     :easing-fn tween/ease-out-quad
-                     :update-fn tween/tween-y-fn
-                     :yoyo? true
-                     :yoyo-update-fn tween/tween-y-yoyo-fn
-                     :repeat-times ##Inf)))
+  [{:keys [window vg] :as state}]
+  (let [[window-w window-h] (u/window-size window)]
+    [(sprite/sprite :example
+                    [500 50]
+                    :vel [3 3]
+                    :color [0 1 0])
+     (sprite/image-sprite :captain-sheet
+                          [100 100]
+                          [1680 1440]
+                          ;; @TODO: preload assets and get them easily
+                          (image/load-texture "resources/img/captain.png")
+                          :offsets [:left :top])
+     (sprite/animated-sprite :animated-captain
+                             [600 500]
+                             [240 360]
+                             (image/load-texture "resources/img/captain.png")
+                             [1680 1440]
+                             :animations {:none {:frames 1
+                                                 :y-offset 0
+                                                 :frame-delay 100}
+                                          :idle {:frames 4
+                                                 :y-offset 1
+                                                 :frame-delay 15}
+                                          :run  {:frames 4
+                                                 :y-offset 2
+                                                 :frame-delay 8}
+                                          :jump {:frames 7
+                                                 :y-offset 3
+                                                 :frame-delay 8}}
+                             :current-animation :none
+                             :vel [2 -3]
+                             :debug? true
+                             :debug-color p/cyan)
+     (-> (sprite/sprite :tween-example
+                        [600 250]
+                        :color p/magenta)
+         (tween/add-tween
+          (tween/tween :pos
+                       100
+                       :update-fn tween/tween-x-fn
+                       :yoyo? true
+                       :yoyo-update-fn tween/tween-x-yoyo-fn
+                       :repeat-times ##Inf))
+         (tween/add-tween
+          (tween/tween :pos
+                       -200
+                       :step-count 50
+                       :easing-fn tween/ease-out-quad
+                       :update-fn tween/tween-y-fn
+                       :yoyo? true
+                       :yoyo-update-fn tween/tween-y-yoyo-fn
+                       :repeat-times ##Inf)))
 
-   ;; world bounds
-   (sprite/sprite :wall-y [0 -100]
-                  :size [window-w 100]
-                  :update-fn identity
-                  :offsets [:left :top])
-   (sprite/sprite :wall-x [window-w 0]
-                  :size [100 window-h]
-                  :update-fn identity
-                  :offsets [:left :top])
-   (sprite/sprite :wall-y [0 window-h]
-                  :size [window-w 100]
-                  :update-fn identity
-                  :offsets [:left :top])
-   (sprite/sprite :wall-x [-100 0]
-                  :size [100 window-h]
-                  :update-fn identity
-                  :offsets [:left :top])])
+     (sprite/text-sprite :example-text
+                         [50 50]
+                         "hello clunk game"
+                         :vel [-2 -3]
+                         :update-fn sprite/update-pos
+                         :color p/cyan
+                         :debug? true)
+
+     ;; world bounds
+     (sprite/sprite :wall-y [0 -100]
+                    :size [window-w 100]
+                    :update-fn identity
+                    :offsets [:left :top])
+     (sprite/sprite :wall-x [window-w 0]
+                    :size [100 window-h]
+                    :update-fn identity
+                    :offsets [:left :top])
+     (sprite/sprite :wall-y [0 window-h]
+                    :size [window-w 100]
+                    :update-fn identity
+                    :offsets [:left :top])
+     (sprite/sprite :wall-x [-100 0]
+                    :size [100 window-h]
+                    :update-fn identity
+                    :offsets [:left :top])]))
 
 (defn wall-colliders
   [sprite-group]
@@ -109,7 +121,8 @@
            (assoc :pos [700 100])
            (assoc :color [(rand) (rand) (rand)]))))]
    (wall-colliders :animated-captain)
-   (wall-colliders :example)))
+   (wall-colliders :example)
+   (wall-colliders :example-text)))
 
 (defn update-demo
   [state]
@@ -161,7 +174,7 @@
 
 (defn init-scenes
   [state]
-  {:demo {:sprites (sprites (u/window-size (:window state)))
+  {:demo {:sprites (sprites state)
           :colliders (colliders)
           :update-fn update-demo
           :draw-fn draw-demo!
@@ -174,7 +187,8 @@
 (def game (c/game {:title "Example Clunk Game"
                    :size [1200 800]
                    :init-scenes-fn init-scenes
-                   :current-scene :demo}))
+                   :current-scene :demo
+                   :audio? false}))
 
 (defn -main
   []

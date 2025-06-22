@@ -1,7 +1,28 @@
->(ns clunk.sprite
-   (:import (org.lwjgl.opengl GL11))
-   (:require [clunk.image :as image]
-             [clunk.palette :as p]))
+(ns clunk.sprite
+  (:import (java.nio ByteBuffer IntBuffer ShortBuffer)
+           (org.lwjgl Version)
+           (org.lwjgl.glfw Callbacks
+                           GLFW
+                           GLFWCursorPosCallbackI
+                           GLFWErrorCallback
+                           GLFWFramebufferSizeCallbackI
+                           GLFWKeyCallbackI
+                           GLFWMouseButtonCallbackI)
+           (org.lwjgl.nanovg NanoVG NanoVGGL3 NVGColor)
+           (org.lwjgl.openal AL AL10 ALCCapabilities ALC10 ALC)
+           ;; @NOTE ok bafflingly you need to know which version of
+           ;; OpenGL a feature comes from in order to use it, java
+           ;; would just import GLXX.* but we need to ns-qualify our
+           ;; interop calls :sigh:
+           (org.lwjgl.opengl GL
+                             GL11
+                             GL14
+                             GL30)
+           (org.lwjgl.stb STBImage STBVorbis)
+           (org.lwjgl.system MemoryStack MemoryUtil))
+  (:require [clunk.image :as image]
+            [clunk.palette :as p]
+            [clunk.util :as u]))
 
 (defn default-bounding-poly
   "Generates a bounding polygon based on the `:size` rectangle of a
@@ -262,12 +283,92 @@
     :debug-color debug-color}
    extra))
 
-;; @TODO: text sprite
+(defn capture-gl-state
+  "Capture the current blending state of GL so we can draw NanoVG
+  text (which blats the config) before restoring the original state
+  for drawing images/shapes."
+  []
+  {:src-rgb (GL11/glGetInteger GL30/GL_BLEND_SRC_RGB)
+   :src-alpha (GL11/glGetInteger GL30/GL_BLEND_SRC_ALPHA)
+   :dst-rgb (GL11/glGetInteger GL14/GL_BLEND_DST_RGB)
+   :dst-alpha (GL11/glGetInteger GL11/GL_DST_ALPHA)
+   :blend-enabled? (GL11/glIsEnabled GL11/GL_BLEND)})
+
+(defn restore-gl-state
+  "Restore the original blending state of GL for drawing images/shapes."
+  [{:keys [src-rgb src-alpha dst-rgb dst-alpha blend-enabled?]}]
+  (if blend-enabled?
+    (GL11/glEnable GL11/GL_BLEND)
+    (GL11/glDisable GL11/GL_BLEND))
+  (GL30/glBlendFuncSeparate src-rgb dst-rgb src-alpha dst-alpha))
+
+(defn draw-text-sprite!
+  [{:keys [window vg vg-color default-font] :as state}
+   {:keys [pos content font font-size color] :as s}]
+  (let [[x y] pos
+        [r g b a] (map float color)
+        a (or a (float 1)) ;; default alpha
+        font (or font default-font)
+        [window-w window-h] (u/window-size window)
+        old-state (capture-gl-state)]
+    (NanoVG/nvgBeginFrame vg window-w window-h 1)
+    (NanoVG/nvgFontSize vg font-size)
+    (NanoVG/nvgFontFace vg font)
+    (NanoVG/nvgFillColor vg (NanoVG/nvgRGBAf r g b a vg-color))
+    (NanoVG/nvgText vg (float x) (float y) content)
+    (NanoVG/nvgEndFrame vg)
+    (restore-gl-state old-state)))
+
+(defn text-sprite
+  [sprite-group pos content &
+   {:keys [vel
+           update-fn
+           draw-fn
+           points
+           bounds-fn
+           offsets
+           font
+           font-size
+           color
+           debug?
+           debug-color
+           extra]
+    :or {rotation 0
+         vel [0 0]
+         update-fn identity
+         draw-fn draw-text-sprite!
+         offsets [:left :bottom]
+         ;; @TODO:  name fonts better
+         font "sans"
+         font-size 32
+         color p/white
+         debug? false
+         debug-color p/red}}]
+  (merge
+   (sprite sprite-group pos)
+   {:draw-requires-state? true
+    :content content
+    :font font
+    :font-size font-size
+    ;; @TODO: collision bounds for text are more complex than this
+    :size [(* (count content) font-size 0.5) font-size]
+    :color color
+    :vel vel
+    :update-fn update-fn
+    :draw-fn draw-fn
+    :points points
+    :bounds-fn (or bounds-fn
+                   (if (seq points)
+                     :points
+                     default-bounding-poly))
+    :offsets offsets
+    :debug? debug?
+    :debug-color debug-color}))
 
 (defn update-state
   "Update each sprite in the current scene using its `:update-fn`."
-  [{:keys [current-scene] :as st}]
-  (update-in st [:scenes current-scene :sprites]
+  [{:keys [current-scene] :as state}]
+  (update-in state [:scenes current-scene :sprites]
              (fn [sprites]
                (pmap (fn [s]
                        ((:update-fn s) s))
@@ -277,11 +378,13 @@
   "Draw each sprite in the current scene using its `:draw-fn`."
   [{:keys [current-scene]
     global-debug? :debug?
-    :as st}]
-  (let [sprites (get-in st [:scenes current-scene :sprites])]
+    :as state}]
+  (let [sprites (get-in state [:scenes current-scene :sprites])]
     (doall
-     (map (fn [{:keys [draw-fn debug?] :as s}]
-            (draw-fn s)
+     (map (fn [{:keys [draw-fn debug? draw-requires-state?] :as s}]
+            (if draw-requires-state?
+              (draw-fn state s)
+              (draw-fn s))
             (when (or global-debug? debug?)
               (draw-bounds s)
               (draw-center s)))
@@ -291,10 +394,10 @@
   "Update sprites in the current scene with the update function `f`.
 
   Optionally takes a filtering function `pred`."
-  ([st f]
-   (update-sprites st (constantly true) f))
-  ([{:keys [current-scene] :as st} pred f]
-   (update-in st [:scenes current-scene :sprites]
+  ([state f]
+   (update-sprites state (constantly true) f))
+  ([{:keys [current-scene] :as state} pred f]
+   (update-in state [:scenes current-scene :sprites]
               (fn [sprites]
                 (pmap (fn [s]
                         (if (pred s)
