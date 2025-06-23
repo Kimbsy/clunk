@@ -1,4 +1,4 @@
-(ns clunk.example-game
+(ns user
   "Temporary example game namespace, useful as we don't need to install clunk locally to test changes.
 
   Eventually we should remove this and juts have a bunch of games in `examples`."
@@ -71,13 +71,18 @@
                        :yoyo-update-fn tween/tween-y-yoyo-fn
                        :repeat-times ##Inf)))
 
-     (sprite/text-sprite :example-text
-                         [50 50]
-                         "hello clunk game"
-                         :vel [-2 -3]
-                         :update-fn sprite/update-pos
-                         :color p/cyan
-                         :debug? true)
+     (-> (sprite/text-sprite :example-text
+                            [50 50]
+                            "hello clunk game"
+                            :vel [-2 -3]
+                            :update-fn sprite/update-pos
+                            :color p/cyan
+                            :debug? true)
+         (tween/add-tween
+          (tween/tween :rotation
+                       -360
+                       :step-count 300
+                       :repeat-times ##Inf)))
 
      ;; world bounds
      (sprite/sprite :wall-y [0 -100]

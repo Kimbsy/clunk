@@ -10,10 +10,6 @@
                            GLFWMouseButtonCallbackI)
            (org.lwjgl.nanovg NanoVG NanoVGGL3 NVGColor)
            (org.lwjgl.openal AL AL10 ALCCapabilities ALC10 ALC)
-           ;; @NOTE ok bafflingly you need to know which version of
-           ;; OpenGL a feature comes from in order to use it, java
-           ;; would just import GLXX.* but we need to ns-qualify our
-           ;; interop calls :sigh:
            (org.lwjgl.opengl GL
                              GL11
                              GL14
@@ -22,7 +18,8 @@
            (org.lwjgl.system MemoryStack MemoryUtil))
   (:require [clunk.image :as image]
             [clunk.palette :as p]
-            [clunk.util :as u]))
+            [clunk.util :as u]
+            [clojure.math :as math]))
 
 (defn default-bounding-poly
   "Generates a bounding polygon based on the `:size` rectangle of a
@@ -308,10 +305,10 @@
     (GL11/glDisable GL11/GL_BLEND))
   (GL30/glBlendFuncSeparate src-rgb dst-rgb src-alpha dst-alpha))
 
-;; @TODO: respect rotation
+;; @TODO: respect offsets
 (defn draw-text-sprite!
   [{:keys [window vg vg-color default-font] :as state}
-   {:keys [pos content font font-size color] :as s}]
+   {:keys [pos content font font-size color rotation] :as s}]
   (let [[x y] pos
         [r g b a] (map float color)
         a (or a (float 1)) ;; default alpha
@@ -322,7 +319,15 @@
     (NanoVG/nvgFontSize vg font-size)
     (NanoVG/nvgFontFace vg font)
     (NanoVG/nvgFillColor vg (NanoVG/nvgRGBAf r g b a vg-color))
-    (NanoVG/nvgText vg (float x) (float y) content)
+
+    (NanoVG/nvgSave vg)
+    (NanoVG/nvgTranslate vg (float x) (float y))
+    (when (and rotation
+               (not (zero? (mod rotation 360))))
+      (NanoVG/nvgRotate vg (math/to-radians rotation)))
+    (NanoVG/nvgText vg (float 0) (float 0) content)
+    (NanoVG/nvgRestore vg)
+
     (NanoVG/nvgEndFrame vg)
     (restore-gl-state old-state)))
 
@@ -358,7 +363,8 @@
     :content content
     :font font
     :font-size font-size
-    ;; @TODO: collision bounds for text are more complex than this
+    ;; @TODO: collision bounds for text are more complex than
+    ;; this (look at nvgtextbounds)
     :size [(* (count content) font-size 0.5) font-size]
     :color color
     :rotation rotation

@@ -64,8 +64,10 @@
 
    ;; translate to put the center of the image at the origin
    (GL11/glTranslatef (+ pos-x (/ draw-w 2)) (+ pos-y (/ draw-h 2)) 0)
-   ;; rotate around the Z-axis
-   (GL11/glRotatef rotation 0 0 1)
+   ;; only rotate if it does something
+   (when (and rotation (not (zero? (mod rotation 360))))
+     ;; rotate around the Z-axis
+     (GL11/glRotatef rotation 0 0 1))
    ;; translate back
    (GL11/glTranslatef (- (/ draw-w 2)) (- (/ draw-h 2)) 0)
 
