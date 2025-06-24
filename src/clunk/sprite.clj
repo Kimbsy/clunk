@@ -1,4 +1,8 @@
 (ns clunk.sprite
+  (:require [clunk.image :as image]
+            [clunk.palette :as p]
+            [clunk.util :as u]
+            [clojure.math :as math])
   (:import (java.nio ByteBuffer IntBuffer ShortBuffer)
            (org.lwjgl Version)
            (org.lwjgl.glfw Callbacks
@@ -15,11 +19,7 @@
                              GL14
                              GL30)
            (org.lwjgl.stb STBImage STBVorbis)
-           (org.lwjgl.system MemoryStack MemoryUtil))
-  (:require [clunk.image :as image]
-            [clunk.palette :as p]
-            [clunk.util :as u]
-            [clojure.math :as math]))
+           (org.lwjgl.system MemoryStack MemoryUtil)))
 
 (defn default-bounding-poly
   "Generates a bounding polygon based on the `:size` rectangle of a

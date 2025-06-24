@@ -1,16 +1,13 @@
-(ns user
-  "Temporary example game namespace, useful as we don't need to install clunk locally to test changes.
-
-  Eventually we should remove this and just have a bunch of games in `examples`."
+(ns basic-clunk.scenes.demo
   (:require [clunk.collision :as collision]
             [clunk.core :as c]
-            [clunk.input :as i]
             [clunk.image :as image]
+            [clunk.input :as i]
             [clunk.palette :as p]
+            [clunk.scene :as scene]
             [clunk.sprite :as sprite]
             [clunk.tween :as tween]
-            [clunk.util :as u]
-            [clunk.scene :as scene]))
+            [clunk.util :as u]))
 
 (defn sprites
   [{:keys [window vg] :as state}]
@@ -145,22 +142,9 @@
       collision/update-state
       tween/update-state))
 
-(defn update-other
-  [state]
-  (-> state
-      sprite/update-state
-      collision/update-state
-      tween/update-state))
-
 (defn draw-demo!
   [state]
   (c/draw-background! (p/hex->rgb "#3A435E"))
-  (-> state
-      sprite/draw-scene-sprites!))
-
-(defn draw-other!
-  [state]
-  (c/draw-background! (p/hex->rgb "#559CAD"))
   (-> state
       sprite/draw-scene-sprites!))
 
@@ -205,28 +189,14 @@
   (prn (:data e))
   state)
 
-(defn init-scenes
+(defn init
   [state]
-  {:demo {:sprites (sprites state)
-          :colliders (colliders)
-          :update-fn update-demo
-          :draw-fn draw-demo!
-          :key-fns [kp1 kp2]
-          :mouse-button-fns [m1 m2]
-          :mouse-movement-fns [mm]
-          ;; define some custom event handlers
-          :other-event-fns [other]}
-   :other {:sprites (sprites state)
-           :key-fns [kp1]
-           :update-fn update-other
-           :draw-fn draw-other!}})
-
-(def game (c/game {:title "Example Clunk Game"
-                   :size [1200 800]
-                   :init-scenes-fn init-scenes
-                   :current-scene :demo
-                   :audio? false}))
-
-(defn -main
-  []
-  (c/start! (c/game game)))
+  {:sprites (sprites state)
+   :colliders (colliders)
+   :update-fn update-demo
+   :draw-fn draw-demo!
+   :key-fns [kp1 kp2]
+   :mouse-button-fns [m1 m2]
+   :mouse-movement-fns [mm]
+   ;; define some custom event handlers
+   :other-event-fns [other]})

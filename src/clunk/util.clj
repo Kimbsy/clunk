@@ -1,7 +1,7 @@
 (ns clunk.util
+  (:require [clojure.math :as math])
   (:import (org.lwjgl.glfw GLFW)
-           (org.lwjgl.system MemoryStack))
-  (:require [clojure.math :as math]))
+           (org.lwjgl.system MemoryStack)))
 
 ;;;; LWJGL helpers
 

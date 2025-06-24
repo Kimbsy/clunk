@@ -1,4 +1,11 @@
 (ns clunk.core
+  (:require [clunk.sprite :as sprite]
+            [clunk.image :as image]
+            [clunk.util :as u]
+            [clunk.palette :as p]
+            [clunk.collision :as collision]
+            [clunk.tween :as tween]
+            [clunk.core :as c])
   (:import (java.nio ByteBuffer IntBuffer ShortBuffer)
            (org.lwjgl Version)
            (org.lwjgl.glfw Callbacks
@@ -19,14 +26,7 @@
                              GL14
                              GL30)
            (org.lwjgl.stb STBImage STBVorbis)
-           (org.lwjgl.system MemoryStack MemoryUtil))
-  (:require [clunk.sprite :as sprite]
-            [clunk.image :as image]
-            [clunk.util :as u]
-            [clunk.palette :as p]
-            [clunk.collision :as collision]
-            [clunk.tween :as tween]
-            [clunk.core :as c]))
+           (org.lwjgl.system MemoryStack MemoryUtil)))
 
 ;; FEATURES
 
@@ -286,7 +286,9 @@
             applicable-fns)))
 
 (defn update-game
-  "Update the game state based on the current scenes `:update-fn`."
+  "Update the game state based on the current scenes `:update-fn`.
+
+  Applies all unprocessed events to the game."
   [{:keys [scenes current-scene] :as state}]
   (let [unprocessed-events (drain-events!)
         scene-update-fn (or (get-in scenes [current-scene :update-fn])
@@ -323,11 +325,10 @@
 
 (defn draw-game!
   "Draw the game using the current scenes `:draw-fn`."
-  [{:keys [window scenes current-scene] :as state}]
+  [{:keys [scenes current-scene] :as state}]
   (if-let [scene-draw-fn (get-in scenes [current-scene :draw-fn])]
     (scene-draw-fn state)
-    (default-draw! state))
-  (GLFW/glfwSwapBuffers window))
+    (default-draw! state)))
 
 (defn default-on-close
   [& _]
@@ -349,12 +350,13 @@
   (merge default-opts override-opts))
 
 (defn main-loop
-  [state]
+  [{:keys [window] :as state}]
   ;; update the state
   (let [new-state (update-game state)]
 
     ;; draw everything
     (draw-game! new-state)
+    (GLFW/glfwSwapBuffers window)
 
     ;; return the new state
     new-state))
