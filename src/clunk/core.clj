@@ -298,30 +298,16 @@
              state
              unprocessed-events))))
 
-;; @TODO: do this better
 (defn default-draw!
   [{:keys [vg default-font window current-scene] :as state}]
   (draw-background! (conj p/black 0))
-
-  ;; @TODO: draw a text sprite
-  
-  ;; (let [old-state (capture-gl-state)]
-  ;;   (let [[window-w window-h] (u/window-size window)]
-  ;;     (NanoVG/nvgBeginFrame vg window-w window-h 1)
-  ;;     (NanoVG/nvgFontSize vg 36)
-  ;;     (NanoVG/nvgFontFace vg "sans")
-  ;;     (with-open [stack (MemoryStack/stackPush)]
-  ;;       (let [white (NVGColor/malloc stack)
-  ;;             f0 (float 0)
-  ;;             f1 (float 1)]
-  ;;         (NanoVG/nvgFillColor vg (NanoVG/nvgRGBAf f1 f1 f1 f1 white))))
-  ;;     (NanoVG/nvgText vg
-  ;;                     (float 10)
-  ;;                     (float (/ window-h 2))
-  ;;                     (str "No draw-fn found for current scene " current-scene))
-  ;;     (NanoVG/nvgEndFrame vg))
-  ;;   (restore-gl-state old-state))
-  )
+  (let [[window-w window-h] (u/window-size window)]
+    (sprite/draw-text-sprite!
+     state
+     (sprite/text-sprite
+      :default-message
+      [100 (/ window-h 2)]
+      (str "No draw-fn found for current scene " current-scene)))))
 
 (defn draw-game!
   "Draw the game using the current scenes `:draw-fn`."
