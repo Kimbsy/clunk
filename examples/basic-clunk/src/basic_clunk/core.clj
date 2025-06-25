@@ -12,8 +12,7 @@
 (def game (c/game {:title "Example Clunk Game"
                    :size [1200 800]
                    :init-scenes-fn init-scenes
-                   :current-scene :demo
-                   :audio? false}))
+                   :current-scene :demo}))
 
 (defn -main
   []

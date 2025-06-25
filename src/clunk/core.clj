@@ -5,7 +5,8 @@
             [clunk.palette :as p]
             [clunk.collision :as collision]
             [clunk.tween :as tween]
-            [clunk.core :as c])
+            [clunk.core :as c]
+            [clunk.audio :as audio])
   (:import (java.nio ByteBuffer IntBuffer ShortBuffer)
            (org.lwjgl Version)
            (org.lwjgl.glfw Callbacks
@@ -58,14 +59,6 @@
   (let [[es _] (swap-vals! events (constantly empty-queue))]
     es))
 
-(defn cleanup-audio
-  [{:keys [source al-buffer context device]}]
-  (AL10/alSourceStop source)
-  (AL10/alDeleteSources source)
-  (AL10/alDeleteBuffers al-buffer)
-  (ALC10/alcDestroyContext context)
-  (ALC10/alcCloseDevice device))
-
 ;; @TODO: util?
 (defn reset-ortho-projection
   [w h]
@@ -88,50 +81,10 @@
       (GLFW/glfwPollEvents)
       (Thread/sleep 1))))
 
-(defn init-audio
-  []
-  ;; init openAL
-  (let [device (ALC10/alcOpenDevice (cast ByteBuffer nil))
-        device-capabilities (ALC/createCapabilities device)
-        context (ALC10/alcCreateContext device (cast IntBuffer nil))]
-    (ALC10/alcMakeContextCurrent context)
-    (AL/createCapabilities device-capabilities)
-
-    ;; decode .ogg -> AL buffer
-    (with-open [stack (MemoryStack/stackPush)]
-      (let [channels (.mallocInt stack 1)
-            sample-rate (.mallocInt stack 1)
-            raw-audio (STBVorbis/stb_vorbis_decode_filename
-                       "resources/audio/music/music.ogg"
-                       channels
-                       sample-rate)]
-        (when-not raw-audio
-          (throw (RuntimeException. (str "Failed to load OGG: " (STBVorbis/stb_vorbis_get_error nil)))))
-
-        ;; choose format based on channels
-        (let [fmt (if (= 1 (.get channels 0))
-                    AL10/AL_FORMAT_MONO16
-                    AL10/AL_FORMAT_STEREO16)
-              al-buffer (AL10/alGenBuffers)]
-          (AL10/alBufferData al-buffer fmt raw-audio (.get sample-rate 0))
-
-          ;; create a source, hook up the buffer, loop and play
-          (let [source (AL10/alGenSources)]
-            (AL10/alSourcei source AL10/AL_BUFFER al-buffer)
-            (AL10/alSourcei source AL10/AL_LOOPING AL10/AL_TRUE)
-            (AL10/alSourcePlay source)
-
-            ;; @TODO: stop and clean up (later?)
-            {:source source
-             :al-buffer al-buffer
-             :context context
-             :device device}))))))
-
 ;; @TODO: split this up into functions and do a (-> state ....) thread
 ;; @TODO: catch initialisation exceptions, and shut down gracefully
 (defn init
-  [{:keys [audio?]
-    [initial-window-width initial-window-height] :size
+  [{[initial-window-width initial-window-height] :size
     :as game-config}]
   (let [state game-config]
     ;; set up an error callback, the default implementation will print
@@ -256,7 +209,7 @@
           (GL30/glBlendFuncSeparate GL11/GL_SRC_ALPHA GL11/GL_ONE_MINUS_SRC_ALPHA GL11/GL_ONE GL11/GL_ONE_MINUS_SRC_ALPHA)
 
           ;; optionally start audio
-          (let [audio (when audio? (init-audio))
+          (let [audio (audio/init-audio)
                 state (assoc state :audio audio)]
 
             ;; start polling for events
@@ -327,8 +280,7 @@
    :draw-fn draw-game!
    :on-close-fn default-on-close
    :init-scenes-fn (constantly {})
-   :current-scene :none
-   :audio? true})
+   :current-scene :none})
 
 (defn game
   "Create a game config map"
@@ -344,11 +296,14 @@
     (draw-game! new-state)
     (GLFW/glfwSwapBuffers window)
 
+    ;; clean up stopped audio sources
+    (audio/cleanup-stopped-sources!)
+
     ;; return the new state
     new-state))
 
 (defn start!
-  [{:keys [init-scenes-fn current-scene audio?] :as game}]
+  [{:keys [init-scenes-fn current-scene] :as game}]
   (let [{:keys [window audio] :as initialised-lwjgl} (init game)
         scenes (init-scenes-fn initialised-lwjgl)
         state (merge initialised-lwjgl {:scenes scenes})]
@@ -367,8 +322,7 @@
     ;; @TODO: call game defined `:on-close-fn`
 
     ;; clean up audio stuff on close
-    (when audio?
-      (cleanup-audio audio))
+    (audio/cleanup-audio audio)
 
     ;; free window callbacks and destroy the window
     (Callbacks/glfwFreeCallbacks window)

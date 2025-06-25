@@ -10,7 +10,8 @@
             [clunk.sprite :as sprite]
             [clunk.tween :as tween]
             [clunk.util :as u]
-            [clunk.scene :as scene]))
+            [clunk.scene :as scene]
+            [clunk.audio :as audio]))
 
 (defn sprites
   [{:keys [window vg] :as state}]
@@ -187,6 +188,9 @@
 (defn m1
   [state e]
   (prn "m1" e)
+  ;; @TODO: this should happen in the preloader
+  (audio/load-ogg-file! "resources/audio/sfx/blip-1.ogg" :blip-1)
+  (audio/play! :blip-1)
   state)
 
 (defn m2
@@ -224,8 +228,7 @@
 (def game (c/game {:title "Example Clunk Game"
                    :size [1200 800]
                    :init-scenes-fn init-scenes
-                   :current-scene :demo
-                   :audio? false}))
+                   :current-scene :demo}))
 
 (defn -main
   []

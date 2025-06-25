@@ -170,7 +170,7 @@
 (def K_Z GLFW/GLFW_KEY_Z)
 
 ;; @TODO this ends up a little clunky (lol) maybe we can do something
-;; nicer than (i/is? e i/K_SPACE i/PRESS). At least this way we get
+;; nicer than (i/is e i/K_SPACE i/PRESS). At least this way we get
 ;; auto-completion.
 (defn is
   ([event code]
