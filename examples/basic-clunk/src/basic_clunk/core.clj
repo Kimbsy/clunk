@@ -12,8 +12,14 @@
 (def game (c/game {:title "Example Clunk Game"
                    :size [1200 800]
                    :init-scenes-fn init-scenes
-                   :current-scene :demo}))
+                   :current-scene :demo
+                   :on-start-fn (fn [state]
+                                  (prn "STARTING!!!!!")
+                                  state)
+                   :on-close-fn (fn [final-state]
+                                  (prn "CLOSING!!!!!!")
+                                  final-state)}))
 
 (defn -main
   []
-  (c/start! (c/game game)))
+  (c/start! game))

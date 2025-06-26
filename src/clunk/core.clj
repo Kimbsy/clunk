@@ -278,6 +278,7 @@
    :size [800 600]
    :update-fn update-game
    :draw-fn draw-game!
+   :on-start-fn identity
    :on-close-fn default-on-close
    :init-scenes-fn (constantly {})
    :current-scene :none})
@@ -303,23 +304,27 @@
     new-state))
 
 (defn start!
-  [{:keys [init-scenes-fn current-scene] :as game}]
+  [{:keys [init-scenes-fn on-start-fn on-close-fn] :as game}]
   (let [{:keys [window audio] :as initialised-lwjgl} (init game)
         scenes (init-scenes-fn initialised-lwjgl)
-        state (merge initialised-lwjgl {:scenes scenes})]
-    (try
-      (doall
-       (iteration
-        main-loop
-        :initk state
-        ;; run the rendering loop until the user has attempted to
-        ;; close the window or has pressed the ESC key.
-        :somef (fn [{:keys [window]}]
-                 (not (GLFW/glfwWindowShouldClose window)))))
-      (catch Exception e
-        (prn e)))
+        state (merge initialised-lwjgl {:scenes scenes})
+        state (on-start-fn state)]
 
-    ;; @TODO: call game defined `:on-close-fn`
+    (when-let
+        [final-state
+         (try
+           (doall
+            (iteration
+             main-loop
+             :initk state
+             ;; run the rendering loop until the user has attempted to
+             ;; close the window or has pressed the ESC key.
+             :somef (fn [{:keys [window]}]
+                      (not (GLFW/glfwWindowShouldClose window)))))
+           (catch Exception e
+             (prn e)))]
+      ;; call game defined `:on-close-fn`
+      (on-close-fn final-state))
 
     ;; clean up audio stuff on close
     (audio/cleanup-audio audio)

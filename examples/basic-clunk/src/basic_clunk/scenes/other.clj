@@ -98,7 +98,7 @@
 
 (defn draw-other!
   [state]
-  (c/draw-background! (p/hex->rgb "#559CAD"))
+  (c/draw-background! (p/hex->rgba "#559CAD"))
   (-> state
       sprite/draw-scene-sprites!))
 

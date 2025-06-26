@@ -145,7 +145,7 @@
 
 (defn draw-demo!
   [state]
-  (c/draw-background! (p/hex->rgb "#3A435E"))
+  (c/draw-background! (p/hex->rgba "#3A435E"))
   (-> state
       sprite/draw-scene-sprites!))
 

@@ -155,13 +155,12 @@
 
 (defn draw-demo!
   [state]
-  (c/draw-background! (p/hex->rgb "#3A435E"))
-  (-> state
-      sprite/draw-scene-sprites!))
+  (c/draw-background! (p/hex->rgba "#3A435E"))
+  (sprite/draw-scene-sprites! state))
 
 (defn draw-other!
   [state]
-  (c/draw-background! (p/hex->rgb "#559CAD"))
+  (c/draw-background! (p/hex->rgba "#559CAD"))
   (-> state
       sprite/draw-scene-sprites!))
 
@@ -228,8 +227,14 @@
 (def game (c/game {:title "Example Clunk Game"
                    :size [1200 800]
                    :init-scenes-fn init-scenes
-                   :current-scene :demo}))
+                   :current-scene :demo
+                   :on-start-fn (fn [state]
+                                  (prn "STARTING!!!!!")
+                                  state)
+                   :on-close-fn (fn [final-state]
+                                  (prn "CLOSING!!!!!!")
+                                  final-state)}))
 
 (defn -main
   []
-  (c/start! (c/game game)))
+  (c/start! game))

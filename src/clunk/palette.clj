@@ -4,9 +4,9 @@
   []
   [(rand) (rand) (rand) (rand)])
 
-(defn hex->rgb
+(defn hex->rgba
   ([hex-string]
-   (hex->rgb hex-string 0))
+   (hex->rgba hex-string 0))
   ([hex-string alpha]
    (let [s (if (= \# (first hex-string))
              (apply str (rest hex-string))
