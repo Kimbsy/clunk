@@ -23,6 +23,13 @@
   (map #(/ % 2)
        (window-size window)))
 
+(defn ratio-pos
+  "Create an `[x y]` vector position at the specified ratio
+  coordinates."
+  [window [x-factor y-factor]]
+  (let [[w h] (window-size window)]
+    [(* w x-factor) (* h y-factor)]))
+
 ;;;; Geometry helpers
 
 (defn poly-lines
