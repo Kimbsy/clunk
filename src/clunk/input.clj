@@ -1,6 +1,8 @@
 (ns clunk.input
   (:import (org.lwjgl.glfw GLFW)))
 
+;; @TODO: add `on-click` helper from quip, requires default mouse click handler
+
 (def PRESS GLFW/GLFW_PRESS)
 (def RELEASE GLFW/GLFW_RELEASE)
 (def REPEAT GLFW/GLFW_REPEAT)
