@@ -174,7 +174,59 @@ The two collide-fn functions take both sprites as arguments, and should return t
 
 ## Tweens
 
-@TODO
+To use tweens in your scene you must add the `clunk.tween/update-state` function to your scene update function.
+
+``` Clojure
+(defn update-demo
+  [state]
+  (-> state
+      sprite/update-state
+      collision/update-state
+      tween/update-state))   ;; <= this one
+```
+
+Tweens are an incredibly flexible tool. They allow you to modify an attribute of a sprite by a some amount, over an optionally defined duration (`:step-count`, the number of frames over which the change will occur), following a specific progress curve (`:easing-fn`, a large number of built-in easing functions are provided in the `clunk.tween` namespace).
+
+This change can then be performed in reverse (by setting `:yoyo?` to `true`), and the whole process can be repeated any number of times (set `:repeat-times` to `##Inf` for continuous looping).
+
+In addition you can specify trigger functions which happen when the tween starts to yoyo (`:on-yoyo-fn`), when the whole cycle starts to repeat (`:on-repeat-fn`), and when the tween completes (`:on-complete-fn`).
+
+For fields which are not a single numeric value (like `pos`, `vel`, etc.) you can specify an `:update-fn` and (if needed) a `:yoyo-update-fn` which take the current value of the field, and a delta to modify it by (over the course of the tween the delta add up to the desired change) you can modify the field in whatever way makes sense. For 2d vector fields like `pos` and `vel`, the functions `clunk.tween/tween-<x|y>-fn` and `clunk.tween/tween-<x|y>-yoyo-fn` are provided to modify the `x` and `y` values of these fields.
+
+You can create a tween with `clunk.tween/tween` and attach it to a sprite with `clunk.tween/add-tween`.
+
+``` Clojure
+;; create a sprite
+(-> (sprite/image-sprite :bouncing-heart
+                         [200 300]
+                         [32 32]
+                         (image/load-texture "resources/img/heart.png"))
+    (tween/add-tween
+     ;; spin 360, then reverse
+     (tween/tween :rotation
+                  360
+                  :yoyo? true
+                  :repeat-times ##Inf))
+    (tween/add-tween
+     ;; move from left to right, then reverse
+     (tween/tween :pos
+                  100
+                  :update-fn tween/tween-x-fn
+                  :yoyo? true
+                  :yoyo-update-fn tween/tween-x-yoyo-fn
+                  :repeat-times ##Inf))
+    (tween/add-tween
+     ;; move up and then reverse, describing a parabola because of the `:easing-fn`
+     (tween/tween :pos
+                  -200
+                  :step-count 50
+                  :easing-fn tween/ease-out-quad
+                  :update-fn tween/tween-y-fn
+                  :yoyo? true
+                  :yoyo-update-fn tween/tween-y-yoyo-fn
+                  :repeat-times ##Inf)))
+
+```
 
 ## Audio
 
