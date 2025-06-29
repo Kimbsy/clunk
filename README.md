@@ -78,9 +78,9 @@ A sprite has a position, a velocity and a number of other fields for managing co
 
 The default `clunk.sprite/sprite` function returns a minimal sprite which draws itself as a red box. You can give it a new `:draw-fn` using keyword args to override this.
 
-The `clunk.sprite/image-sprite` function creates a sprite which draws an image.
+The `clunk.sprite/image-sprite` function creates a sprite which draws an image. This image must be loaded with the `clunk.image/load-texture` function.
 
-The `clunk.sprite/animated-sprite` function creates an image sprite which draws sections of a sprite sheet, configured by it's `:animations` and `:current-animation` keyword arg.
+The `clunk.sprite/animated-sprite` function creates an image sprite which draws sections of a sprite sheet image, configured by its `:animations` and `:current-animation` keyword args.
 
 The `clunk.sprite/text-sprite` function creates a sprite which draws itself as text, with options for choosing the font, size color etc.
 
