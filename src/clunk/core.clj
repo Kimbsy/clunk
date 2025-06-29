@@ -40,6 +40,8 @@
 ;; @TODO: need to be able to handle exceptions a bit better, currently
 ;; it kills the repl
 
+;; @TODO: Description : Wayland: The platform does not support setting the window position
+
 ;; @TODO pare this down
 (def initial-state
   {:window nil
@@ -162,6 +164,7 @@
               y-pos (/ (- (.height vidmode)
                           window-h)
                        2)]
+          ;; @TODO: this fails on wayland, should check if supported first
           ;; centre the window
           (GLFW/glfwSetWindowPos window x-pos y-pos))
 

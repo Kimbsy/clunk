@@ -76,6 +76,8 @@ Scene draw functions take the current game state and should draw it to the scree
 
 ## Sprites
 
+Take a look at the `examples/basic-sprite` game.
+
 A sprite has a position, a velocity and a number of other fields for managing collision detection and animation as appropriate. Each built-in sprite function takes at least the `:sprite-group` (any keyword) and an `[x y]` position vector.
 
 The default `clunk.sprite/sprite` function returns a minimal sprite which draws itself as a red box. You can give it a new `:draw-fn` using keyword args to override this.
@@ -135,6 +137,8 @@ For custom fields each sprite creation function takes an optional `:extra` keywo
 
 ## Collisions
 
+Take a look at the `examples/collision-detection` game.
+
 To detect collisions between sprites in your scene you must do two things.
 
 - Ensure your scene update function calls `clunk.colision/update-state`.
@@ -177,6 +181,8 @@ The two collide-fn functions take both sprites as arguments, and should return t
 @TODO: document specifying collision detection functions
 
 ## Tweens
+
+Take a look at the `examples/tweens` game.
 
 To use tweens in your scene you must add the `clunk.tween/update-state` function to your scene update function.
 
@@ -233,6 +239,8 @@ You can create a tween with `clunk.tween/tween` and attach it to a sprite with `
 ```
 
 ## Audio
+
+Take a look at the `examples/sounds` game.
 
 To play an audio file (currently `*.ogg` files are supported, conversion tools are widely available), you must first load it with `clunk.audio/load-ogg-file!` specifying the path of the file and a keyword reference key.
 
