@@ -230,7 +230,9 @@ You can create a tween with `clunk.tween/tween` and attach it to a sprite with `
 
 ## Audio
 
-@TODO
+To play an audio file (currently `*.ogg` files are supported, conversion tools are widely available), you must first load it with `clunk.audio/load-ogg-file!` specifying the path of the file and a keyword reference key.
+
+You can play loaded files with `clunk.audio/play!` passing in the reference key you set. You can loop the audio playback by setting the optional `:loop?` keyword arg to `true`. This function additionally returns a reference to the audio source, you can call `clunk.audio/stop!` passing in this source reference to stop it early. This is a necessity when looping audio as they will not stop on their own.
 
 ## Utils
 
