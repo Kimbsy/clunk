@@ -172,6 +172,8 @@ The two collide-fn functions take both sprites as arguments, and should return t
       nil))])
 ```
 
+@TODO: document specifying collision detection functions
+
 ## Tweens
 
 To use tweens in your scene you must add the `clunk.tween/update-state` function to your scene update function.
@@ -234,6 +236,14 @@ To play an audio file (currently `*.ogg` files are supported, conversion tools a
 
 You can play loaded files with `clunk.audio/play!` passing in the reference key you set. You can loop the audio playback by setting the optional `:loop?` keyword arg to `true`. This function additionally returns a reference to the audio source, you can call `clunk.audio/stop!` passing in this source reference to stop it early. This is a necessity when looping audio as they will not stop on their own.
 
+## Input
+
+@TODO: document mouse, keyboard, handlers etc.
+
+## The Game State
+
+@TODO: document what fields exist and what they're for.
+
 ## Utils
 
-@TODO
+The `clunk/util` and `clunk/palette` namespaces provide a number of helper functions for positioning sprites, working with 2d vectors, creating and modifying colours etc.
