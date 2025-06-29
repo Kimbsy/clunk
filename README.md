@@ -12,6 +12,8 @@ It's still a little rough round the edges, please feel free to raise issues for 
 
 ## Getting Started
 
+Have a look at the games in the `examples` directory.
+
 To make a simple game start with the `clunk.core/game` function and run it with `clunk.core/start!`:
 
 ``` Clojure
