@@ -12,7 +12,7 @@ It's still a little rough round the edges, please feel free to raise issues for 
 
 ## Getting Started
 
-Have a look at the games in the `examples` directory.
+Take a look at the games in the [examples](/examples) directory.
 
 To make a simple game start with the `clunk.core/game` function and run it with `clunk.core/start!`:
 
@@ -76,7 +76,7 @@ Scene draw functions take the current game state and should draw it to the scree
 
 ## Sprites
 
-Take a look at the `examples/basic-sprite` game.
+Take a look at the [basic-sprite](/examples/basic-sprite) example game.
 
 A sprite has a position, a velocity and a number of other fields for managing collision detection and animation as appropriate. Each built-in sprite function takes at least the `:sprite-group` (any keyword) and an `[x y]` position vector.
 
@@ -137,7 +137,7 @@ For custom fields each sprite creation function takes an optional `:extra` keywo
 
 ## Collisions
 
-Take a look at the `examples/collision-detection` game.
+Take a look at the [collision-detection](/examples/collision-detection) example game.
 
 To detect collisions between sprites in your scene you must do two things.
 
@@ -182,7 +182,7 @@ The two collide-fn functions take both sprites as arguments, and should return t
 
 ## Tweens
 
-Take a look at the `examples/tweens` game.
+Take a look at the [tweens](/examples/tweens) example game.
 
 To use tweens in your scene you must add the `clunk.tween/update-state` function to your scene update function.
 
@@ -240,7 +240,7 @@ You can create a tween with `clunk.tween/tween` and attach it to a sprite with `
 
 ## Audio
 
-Take a look at the `examples/sounds` game.
+Take a look at the [sounds](/examples/sounds) example game.
 
 To play an audio file (currently `*.ogg` files are supported, conversion tools are widely available), you must first load it with `clunk.audio/load-ogg-file!` specifying the path of the file and a keyword reference key.
 
