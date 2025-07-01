@@ -2,7 +2,8 @@
   (:require [clunk.image :as image]
             [clunk.palette :as p]
             [clunk.util :as u]
-            [clojure.math :as math])
+            [clojure.math :as math]
+            [clunk.shape :as shape])
   (:import (java.nio ByteBuffer IntBuffer ShortBuffer)
            (org.lwjgl Version)
            (org.lwjgl.glfw Callbacks
@@ -111,11 +112,10 @@
       (GL11/glVertex2f (+ x bx off-x) (+ y by off-y)))
     (GL11/glEnd)))
 
-;; @TODO: this should be refactored into a general draw-rect function
 (defn draw-center
-  [{:keys [pos] :as s}]
-  (draw-default-sprite! {:pos pos :color [1 0 0] :size [40 2]})
-  (draw-default-sprite! {:pos pos :color [1 0 0] :size [2 40]}))
+  [{[x y] :pos}]
+  (shape/draw-rect! [(- x 20) y] [40 2] p/red)
+  (shape/draw-rect! [x (- y 20)] [2 40] p/red))
 
 (defn draw-image-sprite!
   [{:keys [pos size image-texture rotation] :as s}]
@@ -187,6 +187,7 @@
     :color color
     :update-fn update-fn
     :draw-fn draw-fn
+    :points points
     :bounds-fn (or bounds-fn
                    (if (seq points)
                      :points
@@ -199,7 +200,7 @@
 ;; @TODO: geometry-sprite
 
 (defn image-sprite
-  [sprite-group pos size image-texture &
+  [sprite-group pos size image-texture-key &
    {:keys [rotation
            vel
            update-fn
@@ -221,7 +222,7 @@
   (merge
    (sprite sprite-group pos)
    {:size size
-    :image-texture image-texture
+    :image-texture (get @image/textures image-texture-key)
     :rotation rotation
     :vel vel
     :update-fn update-fn
@@ -237,7 +238,7 @@
    extra))
 
 (defn animated-sprite
-  [sprite-group pos size spritesheet-texture spritesheet-size &
+  [sprite-group pos size spritesheet-texture-key spritesheet-size &
    {:keys [rotation
            vel
            update-fn
@@ -265,7 +266,7 @@
   (merge
    (sprite sprite-group pos)
    {:size size
-    :spritesheet-texture spritesheet-texture
+    :spritesheet-texture (get @image/textures spritesheet-texture-key)
     :spritesheet-size spritesheet-size
     :rotation rotation
     :vel vel

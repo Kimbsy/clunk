@@ -2,8 +2,7 @@
   (:require [clunk.core :as c]
             [clunk.image :as image]
             [clunk.sprite :as sprite]
-            [clunk.tween :as tween]
-            [clunk.util :as u]))
+            [clunk.tween :as tween]))
 
 (def blue [0 0.6 1 1])
 
@@ -12,7 +11,7 @@
   (sprite/animated-sprite :captain
                           pos
                           [240 360]    ; <- width and height of each animation frame
-                          (image/load-texture "resources/img/captain.png")
+                          :captain-spritesheet
                           [1680 1440]
                           :animations {:none {:frames 1
                                               :y-offset 0

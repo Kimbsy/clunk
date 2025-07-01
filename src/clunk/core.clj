@@ -6,7 +6,8 @@
             [clunk.collision :as collision]
             [clunk.tween :as tween]
             [clunk.core :as c]
-            [clunk.audio :as audio])
+            [clunk.audio :as audio]
+            [clunk.shape :as shape])
   (:import (java.nio ByteBuffer IntBuffer ShortBuffer)
            (org.lwjgl Version)
            (org.lwjgl.glfw Callbacks
@@ -284,7 +285,8 @@
    :on-start-fn identity
    :on-close-fn default-on-close
    :init-scenes-fn (constantly {})
-   :current-scene :none})
+   :current-scene :none
+   :assets {}})
 
 (defn game
   "Create a game config map"
@@ -306,9 +308,41 @@
     ;; return the new state
     new-state))
 
+(defn draw-preload-progress!
+  [window current total]
+  (draw-background! p/black)
+  (let [[w h] (u/window-size window)]
+    (shape/draw-rect!
+     [(* w 0.1) (* h 0.5)]
+     [(* w 0.8) (* h 0.1)]
+     p/white)
+    (shape/fill-rect!
+     [(* w 0.1) (* h 0.5)]
+     [(* w 0.8 (/ current total)) (* h 0.1)]
+     p/white))
+  ;; @TODO: could draw text naming the file underneath?
+  (GLFW/glfwSwapBuffers window))
+
+(defn preload-assets!
+  "Pre-load assets and display a loading bar"
+  [window
+   {audio-assets :audio
+    image-assets :image}]
+  (draw-background! p/black)
+  (GLFW/glfwSwapBuffers window)
+  (let [assets (concat (map (partial vector audio/load-ogg-file!) audio-assets)
+                       (map (partial vector image/load-texture!) image-assets))
+        total (count assets)
+        window-size (u/window-size window)]
+    (doseq [[i [f [k path]]] (map-indexed vector assets)]
+      (draw-preload-progress! window i total)
+      (println (str "Loading " k " from: " path))
+      (f k path))))
+
 (defn start!
   [{:keys [init-scenes-fn on-start-fn on-close-fn] :as game}]
-  (let [{:keys [window audio] :as initialised-lwjgl} (init game)
+  (let [{:keys [window audio assets] :as initialised-lwjgl} (init game)
+        _ (preload-assets! window assets)
         scenes (init-scenes-fn initialised-lwjgl)
         state (merge initialised-lwjgl {:scenes scenes})
         state (on-start-fn state)]

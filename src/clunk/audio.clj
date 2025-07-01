@@ -51,13 +51,13 @@
 (defn load-ogg-file!
   "Load a *.ogg music file, returns the al-buffer id (so we can call
   `alDeleteBuffers` later)."
-  [path buffer-key]
+  [buffer-key path]
   ;; decode .ogg -> AL buffer
   (with-open [stack (MemoryStack/stackPush)]
     (let [channels (.mallocInt stack 1)
           sample-rate (.mallocInt stack 1)
           raw-audio (STBVorbis/stb_vorbis_decode_filename
-                     path ;"resources/audio/music/music.ogg"
+                     path
                      channels
                      sample-rate)]
       (when-not raw-audio
@@ -74,7 +74,6 @@
         ;; we can free this up now it's in the buffer
         (MemoryUtil/memFree raw-audio)
 
-        ;; @TODO: would the preloader put this in the game state?
         ;; @TODO: could make this idempotent by deleting the buffer at
         ;; this key if it's set already
         

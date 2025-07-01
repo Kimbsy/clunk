@@ -23,13 +23,12 @@
      (sprite/image-sprite :captain-sheet
                           [100 100]
                           [1680 1440]
-                          ;; @TODO: preload assets and get them easily
-                          (image/load-texture "resources/img/captain.png")
+                          :captain-spritesheet
                           :offsets [:left :top])
      (sprite/animated-sprite :animated-captain
                              [600 500]
                              [240 360]
-                             (image/load-texture "resources/img/captain.png")
+                             :captain-spritesheet
                              [1680 1440]
                              :animations {:none {:frames 1
                                                  :y-offset 0
@@ -50,7 +49,7 @@
      (-> (sprite/image-sprite :example-image
                               (u/center window)
                               [322 346]
-                              (image/load-texture "resources/img/big-present.png")
+                              :big-present
                               :debug? true)
          (tween/add-tween
           (tween/tween :rotation
@@ -187,8 +186,6 @@
 (defn m1
   [state e]
   (prn "m1" e)
-  ;; @TODO: this should happen in the preloader
-  (audio/load-ogg-file! "resources/audio/sfx/blip-1.ogg" :blip-1)
   (audio/play! :blip-1)
   state)
 
@@ -233,7 +230,11 @@
                                   state)
                    :on-close-fn (fn [final-state]
                                   (prn "CLOSING!!!!!!")
-                                  final-state)}))
+                                  final-state)
+                   :assets {:image {:captain-spritesheet "resources/img/captain.png"
+                                    :big-present "resources/img/big-present.png"}
+                            :audio {:music "resources/audio/music/music.ogg"
+                                    :blip-1 "resources/audio/sfx/blip-1.ogg"}}}))
 
 (defn -main
   []

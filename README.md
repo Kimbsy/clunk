@@ -22,7 +22,6 @@ To make a simple game start with the `clunk.core/game` function and run it with 
   (:require [clunk.collision :as collision]
             [clunk.core :as c]
             [clunk.input :as i]
-            [clunk.image :as image]
             [clunk.palette :as p]
             [clunk.sprite :as sprite]
             [clunk.tween :as tween]
@@ -33,7 +32,10 @@ To make a simple game start with the `clunk.core/game` function and run it with 
 (def game (c/game {:title "Example Clunk Game"
                    :size [1200 800]
                    :init-scenes-fn init-scenes ;; @TODO: implement me!
-                   :current-scene :demo}))
+                   :current-scene :demo
+                   :assets {:image {:captain-spritesheet "resources/img/captain.png"
+                                    :heart "resources/img/heart.png"}
+                            :audio {:music "resources/audio/music/music.ogg"}}}))
 
 (defn -main [& args]
   (c/start! game))
@@ -80,14 +82,15 @@ Take a look at the [basic-sprite](/examples/basic-sprite) example game.
 
 A sprite has a position, a velocity and a number of other fields for managing collision detection and animation as appropriate. Each built-in sprite function takes at least the `:sprite-group` (any keyword) and an `[x y]` position vector.
 
+In order to use images for your sprites, you must declare them in the game config `:assets` in the `:image` map. You can refer to them by the key they are associated with.
+
 The default `clunk.sprite/sprite` function returns a minimal sprite which draws itself as a red box. You can give it a new `:draw-fn` using keyword args to override this.
 
-The `clunk.sprite/image-sprite` function creates a sprite which draws an image. This image must be loaded with the `clunk.image/load-texture` function.
+The `clunk.sprite/image-sprite` function creates a sprite which draws an image. (This image must be declared as an `:asset` in the game config).
 
 The `clunk.sprite/animated-sprite` function creates an image sprite which draws sections of a sprite sheet image, configured by its `:animations` and `:current-animation` keyword args.
 
 The `clunk.sprite/text-sprite` function creates a sprite which draws itself as text, with options for choosing the font, size color etc.
-
 
 ``` Clojure
 (defn demo-sprites
@@ -97,12 +100,12 @@ The `clunk.sprite/text-sprite` function creates a sprite which draws itself as t
    (sprite/image-sprite :health
                         [200 200]
                         [32 32]
-                        (image/load-texture "resources/img/heart.png"))
+                        :heart)
 
    (sprite/animated-sprite :captain
                            [300 300]
                            [240 360]
-                           (image/load-texture "resources/img/captain.png")
+                           :captain-spritesheet
                            [1680 1440]
                            :animations {:none {:frames 1
                                                :y-offset 0
@@ -210,7 +213,7 @@ You can create a tween with `clunk.tween/tween` and attach it to a sprite with `
 (-> (sprite/image-sprite :bouncing-heart
                          [200 300]
                          [32 32]
-                         (image/load-texture "resources/img/heart.png"))
+                         :heart)
     (tween/add-tween
      ;; spin 360, then reverse
      (tween/tween :rotation
@@ -242,7 +245,7 @@ You can create a tween with `clunk.tween/tween` and attach it to a sprite with `
 
 Take a look at the [sounds](/examples/sounds) example game.
 
-To play an audio file (currently `*.ogg` files are supported, conversion tools are widely available), you must first load it with `clunk.audio/load-ogg-file!` specifying the path of the file and a keyword reference key.
+To play an audio file (currently `*.ogg` files are supported, conversion tools are widely available), you must declare it in the game config `:assets` in the `:audio` map. This ensures the file is loaded before the game starts and can be played using the key it is associated with.
 
 You can play loaded files with `clunk.audio/play!` passing in the reference key you set. You can loop the audio playback by setting the optional `:loop?` keyword arg to `true`. This function additionally returns a reference to the audio source, you can call `clunk.audio/stop!` passing in this source reference to stop it early. This is a necessity when looping audio as they will not stop on their own.
 
@@ -256,4 +259,4 @@ You can play loaded files with `clunk.audio/play!` passing in the reference key 
 
 ## Utils
 
-The `clunk/util` and `clunk/palette` namespaces provide a number of helper functions for positioning sprites, working with 2d vectors, creating and modifying colours etc.
+The `clunk/util` and `clunk/palette` and `clunk.shape` namespaces provide a number of helper functions for positioning sprites, working with 2d vectors, creating and modifying colours, drawing simple shapes etc.

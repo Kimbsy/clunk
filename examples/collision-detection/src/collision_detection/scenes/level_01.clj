@@ -1,8 +1,7 @@
 (ns collision-detection.scenes.level-01
-  (:require [clunk.core :as c]
-            [clunk.collision :as collision]
-            [clunk.sprite :as sprite]
-            [clunk.util :as u]))
+  (:require [clunk.collision :as collision]
+            [clunk.core :as c]
+            [clunk.sprite :as sprite]))
 
 (def grey [0.17254902 0.19215687 0.17254902 1])
 (def green [0.6039216 0.88235295 0.6156863 1])

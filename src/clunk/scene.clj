@@ -1,6 +1,7 @@
 (ns clunk.scene
   (:require [clunk.core :as c]
-            [clunk.util :as u])
+            [clunk.util :as u]
+            [clunk.shape :as shape])
   (:import (org.lwjgl.glfw GLFW)
            (org.lwjgl.opengl GL11)))
 
@@ -23,11 +24,17 @@
   (if (< i (/ transition-length 2))
     (do
       (c/draw-game! (assoc state :current-scene current-scene))
-      (draw-black-rect! (u/window-size window) (float (/ (* 2 i) transition-length)))
+      (shape/fill-rect!
+       [0 0]
+       (u/window-size window)
+       [0 0 0 (float (/ (* 2 i) transition-length))])
       (GLFW/glfwSwapBuffers window))
     (do
       (c/draw-game! (assoc state :current-scene target))
-      (draw-black-rect! (u/window-size window) (float (/ (* 2 (- transition-length i)) transition-length)))
+      (shape/fill-rect!
+       [0 0]
+       (u/window-size window)
+       [0 0 0 (float (/ (* 2 (- transition-length i)) transition-length))])
       (GLFW/glfwSwapBuffers window))))
 
 (defn transition

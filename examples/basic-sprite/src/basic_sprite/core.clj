@@ -1,7 +1,7 @@
 (ns basic-sprite.core
   (:gen-class)
-  (:require [clunk.core :as c]
-            [basic-sprite.scenes.level-01 :as level-01]))
+  (:require [basic-sprite.scenes.level-01 :as level-01]
+            [clunk.core :as c]))
 
 (defn init-scenes
   "Map of scenes in the game"
@@ -12,7 +12,8 @@
 (def basic-sprite-game
   (c/game {:title "Basic Sprite Example"
            :init-scenes-fn init-scenes
-           :current-scene :level-01}))
+           :current-scene :level-01
+           :assets {:image {:captain-spritesheet "resources/img/captain.png"}}}))
 
 (defn -main
   "Run the game"

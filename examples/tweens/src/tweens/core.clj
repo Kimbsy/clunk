@@ -12,7 +12,8 @@
 (def tweens-game
   (c/game {:title "tweens"
            :init-scenes-fn init-scenes
-           :current-scene :level-01}))
+           :current-scene :level-01
+           :assets {:image {:captain-spritesheet "resources/img/captain.png"}}}))
 
 (defn -main
   "Run the game"

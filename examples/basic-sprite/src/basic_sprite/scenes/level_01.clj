@@ -1,8 +1,6 @@
 (ns basic-sprite.scenes.level-01
   (:require [clunk.core :as c]
-            [clunk.image :as image]
-            [clunk.sprite :as sprite]
-            [clunk.util :as u]))
+            [clunk.sprite :as sprite]))
 
 (def blue [0 0.6 1 1])
 
@@ -12,7 +10,7 @@
    :captain ; sprite-group, used for group collision detection
    pos
    [240 360] ; <- width and height of each animation frame
-   (image/load-texture "resources/img/captain.png") ; <- spritesheet location
+   :captain-spritesheet ; <- spritesheet image asset key
    [1680 1440] ; <- width and height of the whole spritesheet image
    :animations {:none {:frames 1
                        :y-offset 0

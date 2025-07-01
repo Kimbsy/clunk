@@ -1,15 +1,11 @@
 (ns sounds.core
   (:gen-class)
-  (:require [clunk.core :as c]
-            [clunk.audio :as audio]
+  (:require [clunk.audio :as audio]
+            [clunk.core :as c]
             [sounds.scenes.level-01 :as level-01]))
 
 (defn startup
   [state]
-  (audio/load-ogg-file! "resources/audio/music/music.ogg" :music)
-  (audio/load-ogg-file! "resources/audio/sfx/blip-1.ogg" :blip-1)
-  (audio/load-ogg-file! "resources/audio/sfx/blip-2.ogg" :blip-2)
-  (audio/load-ogg-file! "resources/audio/sfx/blip-3.ogg" :blip-3)
   (assoc state :music-source
          (audio/play! :music :loop? true)))
 
@@ -21,9 +17,13 @@
 ;; Configure the game
 (def sounds-game
   (c/game {:title "Music and sound effects example"
-            :on-start-fn startup
-            :init-scenes-fn init-scenes
-            :current-scene :level-01}))
+           :on-start-fn startup
+           :init-scenes-fn init-scenes
+           :current-scene :level-01
+           :assets {:audio {:music "resources/audio/music/music.ogg"
+                            :blip-1 "resources/audio/sfx/blip-1.ogg"
+                            :blip-2 "resources/audio/sfx/blip-2.ogg"
+                            :blip-3 "resources/audio/sfx/blip-3.ogg"}}}))
 
 (defn -main
   "Run the game"

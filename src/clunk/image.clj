@@ -3,10 +3,12 @@
            (org.lwjgl.stb STBImage)
            (org.lwjgl.system MemoryStack)))
 
+(def textures (atom {}))
+
 ;; @TODO: would be nice to be able to flip in x or y when drawing images
 
-(defn load-texture
-  [path]
+(defn load-texture!
+  [texture-key path]
   ;; prepare buffers for width and height info
   (with-open [stack (MemoryStack/stackPush)]
     (let [w (.mallocInt stack 1)
@@ -47,6 +49,10 @@
           
           ;; cleanup
           (STBImage/stbi_image_free image)
+
+          ;; Add the texture id to the textures atom
+          (swap! textures assoc texture-key tex-id)
+
           tex-id)))))
 
 (defn draw-bound-texture-quad
