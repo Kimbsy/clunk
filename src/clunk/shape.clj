@@ -10,6 +10,15 @@
     (GL11/glVertex2f (+ x bx) (+ y by)))
   (GL11/glEnd))
 
+(defn fill-poly!
+  [[x y] points [r g b a]]
+  (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
+  (GL11/glColor4f r g b a)
+  (GL11/glBegin GL11/GL_POLYGON)
+  (doseq [[bx by] points]
+    (GL11/glVertex2f (+ x bx) (+ y by)))
+  (GL11/glEnd))
+
 (defn draw-rect!
   [pos [w h] color]
   (draw-poly! pos

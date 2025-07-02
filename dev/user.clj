@@ -19,7 +19,19 @@
     [(sprite/sprite :example
                     [500 50]
                     :vel [3 3]
-                    :color [0 1 0])
+                    :color p/green
+                    :points [[30.0 0.0]
+                             [24.270509831248425 17.633557568774194]
+                             [9.270509831248424 28.531695488854606]
+                             [-9.27050983124842 28.53169548885461]
+                             [-24.27050983124842 17.633557568774197]
+                             [-30.0 3.67394039744206E-15]
+                             [-24.270509831248425 -17.63355756877419]
+                             [-9.270509831248427 -28.531695488854606]
+                             [9.270509831248416 -28.53169548885461]
+                             [24.27050983124842 -17.6335575687742]]
+                    :debug? true
+                    :debug-color p/white)
      (sprite/image-sprite :captain-sheet
                           [100 100]
                           [1680 1440]
@@ -133,7 +145,7 @@
      (fn [example-sprite _animated-captain]
        (-> example-sprite
            (assoc :pos [700 100])
-           (assoc :color [(rand) (rand) (rand)]))))]
+           (assoc :color [(rand) (rand) (rand) 1]))))]
    (wall-colliders :animated-captain)
    (wall-colliders :example)
    (wall-colliders :example-text)))

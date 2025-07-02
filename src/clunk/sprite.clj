@@ -85,37 +85,21 @@
 
 (defn draw-default-sprite!
   "Draw a green square as a sprite placeholder."
-  [{[x y] :pos
-    [r g b] :color
-    [w h] :size
-    :as s}]
-  (let [[off-x off-y] (pos-offsets s)]
-    (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
-    (GL11/glColor3f r g b)
-    (GL11/glBegin GL11/GL_QUADS)
-    (GL11/glVertex2f (+ x off-x) (+ y off-y))
-    (GL11/glVertex2f (+ x w off-x) (+ y off-y))
-    (GL11/glVertex2f (+ x w off-x) (+ y h off-y))
-    (GL11/glVertex2f (+ x off-x) (+ y h off-y))
-    (GL11/glEnd)))
+  [{:keys [pos size color] :as s}]
+  (let [offsets (pos-offsets s)]
+    (shape/fill-rect! (map + pos offsets) size color)))
 
 (defn draw-bounds
-  [{[x y] :pos
-    [r g b] :debug-color
-    bounds-fn :bounds-fn
-    :as s}]
-  (let [[off-x off-y] (pos-offsets s)]
-    (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
-    (GL11/glColor3f r g b)
-    (GL11/glBegin GL11/GL_LINE_LOOP)
-    (doseq [[bx by] (bounds-fn s)]
-      (GL11/glVertex2f (+ x bx off-x) (+ y by off-y)))
-    (GL11/glEnd)))
+  [{:keys [pos debug-color bounds-fn] :as s}]
+  (let [offsets (pos-offsets s)
+        points (bounds-fn s)]
+    (shape/draw-poly! pos points debug-color)))
 
 (defn draw-center
-  [{[x y] :pos}]
-  (shape/draw-rect! [(- x 20) y] [40 2] p/red)
-  (shape/draw-rect! [x (- y 20)] [2 40] p/red))
+  [{[x y] :pos
+    color :debug-color}]
+  (shape/draw-rect! [(- x 20) y] [40 2] color)
+  (shape/draw-rect! [x (- y 20)] [2 40] color))
 
 (defn draw-image-sprite!
   [{:keys [pos size image-texture rotation] :as s}]
@@ -171,7 +155,7 @@
            extra]
     :or {size [20 20]
          vel [0 0]
-         color [1 1 1]
+         color p/white
          update-fn update-pos
          draw-fn draw-default-sprite!
          offsets [:center]
