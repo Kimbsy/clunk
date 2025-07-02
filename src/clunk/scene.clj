@@ -5,17 +5,6 @@
   (:import (org.lwjgl.glfw GLFW)
            (org.lwjgl.opengl GL11)))
 
-;; @TODO: move this to some `geometry` namespace?
-(defn draw-black-rect!
-  [[w h] alpha]
-  (GL11/glColor4f 0 0 0 alpha)
-  (GL11/glBegin GL11/GL_QUADS)
-  (GL11/glVertex2f 0 0)
-  (GL11/glVertex2f w 0)
-  (GL11/glVertex2f w h)
-  (GL11/glVertex2f 0 h)
-  (GL11/glEnd))
-
 (defn fade-to-black
   [{:keys [window current-scene scenes] :as state}
    target
