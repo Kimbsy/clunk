@@ -1,34 +1,23 @@
 (ns clunk.core
-  (:require [clunk.sprite :as sprite]
+  (:require [clunk.audio :as audio]
             [clunk.image :as image]
-            [clunk.util :as u]
             [clunk.palette :as p]
-            [clunk.collision :as collision]
-            [clunk.tween :as tween]
-            [clunk.core :as c]
-            [clunk.audio :as audio]
-            [clunk.shape :as shape])
-  (:import (java.nio ByteBuffer IntBuffer ShortBuffer)
-           (org.lwjgl Version)
-           (org.lwjgl.glfw Callbacks
+            [clunk.shape :as shape]
+            [clunk.sprite :as sprite]
+            [clunk.util :as u])
+  (:import (org.lwjgl.glfw Callbacks
                            GLFW
                            GLFWCursorPosCallbackI
                            GLFWErrorCallback
                            GLFWFramebufferSizeCallbackI
                            GLFWKeyCallbackI
                            GLFWMouseButtonCallbackI)
-           (org.lwjgl.nanovg NanoVG NanoVGGL3 NVGColor)
-           (org.lwjgl.openal AL AL10 ALCCapabilities ALC10 ALC)
-           ;; @NOTE ok bafflingly you need to know which version of
-           ;; OpenGL a feature comes from in order to use it, java
-           ;; would just import GLXX.* but we need to ns-qualify our
-           ;; interop calls :sigh:
+           (org.lwjgl.nanovg NanoVG
+                             NanoVGGL3
+                             NVGColor)
            (org.lwjgl.opengl GL
                              GL11
-                             GL14
-                             GL30)
-           (org.lwjgl.stb STBImage STBVorbis)
-           (org.lwjgl.system MemoryStack MemoryUtil)))
+                             GL30)))
 
 ;; FEATURES
 

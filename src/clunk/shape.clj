@@ -1,4 +1,5 @@
 (ns clunk.shape
+  (:require [clojure.math :as math])
   (:import (org.lwjgl.opengl GL11)))
 
 (defn draw-poly!
@@ -38,3 +39,21 @@
   (GL11/glVertex2f (+ x w) (+ y h))
   (GL11/glVertex2f x (+ y h))
   (GL11/glEnd))
+
+(defn ellipse-points
+  [[w h] & {:keys [segments] :or {segments 32}}]
+  (let [rx (/ w 2)
+        ry (/ h 2)
+        dr (/ (* 2 math/PI) segments)]
+    (for [i (range segments)]
+      (let [r (* i dr)]
+        [(* rx (math/cos r))
+         (* ry (math/sin r))]))))
+
+(defn draw-ellipse!
+  [pos size color]
+  (draw-poly! pos (ellipse-points size) color))
+
+(defn fill-ellipse!
+  [pos size color]
+  (fill-poly! pos (ellipse-points size) color))

@@ -2,16 +2,16 @@
   "Temporary example game namespace, useful as we don't need to install clunk locally to test changes.
 
   Eventually we should remove this and just have a bunch of games in `examples`."
-  (:require [clunk.collision :as collision]
+  (:require [clunk.audio :as audio]
+            [clunk.collision :as collision]
             [clunk.core :as c]
             [clunk.input :as i]
-            [clunk.image :as image]
             [clunk.palette :as p]
+            [clunk.scene :as scene]
+            [clunk.shape :as shape]
             [clunk.sprite :as sprite]
             [clunk.tween :as tween]
-            [clunk.util :as u]
-            [clunk.scene :as scene]
-            [clunk.audio :as audio]))
+            [clunk.util :as u]))
 
 (defn sprites
   [{:keys [window vg] :as state}]
@@ -20,16 +20,7 @@
                     [500 50]
                     :vel [3 3]
                     :color p/green
-                    :points [[30.0 0.0]
-                             [24.270509831248425 17.633557568774194]
-                             [9.270509831248424 28.531695488854606]
-                             [-9.27050983124842 28.53169548885461]
-                             [-24.27050983124842 17.633557568774197]
-                             [-30.0 3.67394039744206E-15]
-                             [-24.270509831248425 -17.63355756877419]
-                             [-9.270509831248427 -28.531695488854606]
-                             [9.270509831248416 -28.53169548885461]
-                             [24.27050983124842 -17.6335575687742]]
+                    :points (shape/ellipse-points [60 60])
                     :debug? true
                     :debug-color p/white)
      (sprite/image-sprite :captain-sheet

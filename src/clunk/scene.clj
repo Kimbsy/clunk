@@ -1,7 +1,7 @@
 (ns clunk.scene
   (:require [clunk.core :as c]
-            [clunk.util :as u]
-            [clunk.shape :as shape])
+            [clunk.shape :as shape]
+            [clunk.util :as u])
   (:import (org.lwjgl.glfw GLFW)
            (org.lwjgl.opengl GL11)))
 

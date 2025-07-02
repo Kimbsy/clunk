@@ -1,5 +1,4 @@
 (ns clunk.audio
-  (:require [clunk.audio :as audio])
   (:import (java.nio ByteBuffer IntBuffer)
            (org.lwjgl.openal AL AL10 ALC ALC10)
            (org.lwjgl.stb STBVorbis)
