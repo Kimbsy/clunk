@@ -1,4 +1,4 @@
-(defproject com.kimbsy/clunk "0.1.0-SNAPSHOT"
+(defproject com.kimbsy/clunk "0.2.0-SNAPSHOT"
   :description "A 2D game engine based on LWJGL (Light Weight Java Game Library)"
   :url "https://github.com/Kimbsy/clunk"
   :license {:name "MIT License"
@@ -20,5 +20,7 @@
                  [org.lwjgl/lwjgl-nanovg "3.3.6"]
                  [org.lwjgl/lwjgl-nanovg "3.3.6" :classifier "natives-linux"]]
   :target-path "target/%s"
-  :profiles {:uberjar {:aot :all
-                       :jvm-opts ["-Dclojure.compiler.direct-linking=true"]}})
+  :deploy-repositories [["clojars" {:url "https://clojars.org/repo/"
+                                    :username :env/CLOJARS_USER
+                                    :password :env/CLOJARS_PASS
+                                    :sign-releases false}]])

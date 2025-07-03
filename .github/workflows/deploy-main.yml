@@ -1,0 +1,20 @@
+name: Deploy on main
+
+on:
+  push:
+    paths:
+      - '**'
+      - '!example_games/**'
+    branches:
+      - main
+
+jobs:
+  test:
+    uses: ./.github/workflows/_test.yml
+  
+  deploy:
+    needs: test
+    uses: ./.github/workflows/_deploy.yml
+    secrets:
+      CLOJARS_USERNAME: ${{ secrets.CLOJARS_USERNAME }}
+      CLOJARS_PASSWORD: ${{ secrets.CLOJARS_PASSWORD }}
