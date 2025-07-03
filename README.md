@@ -146,7 +146,7 @@ Take a look at the [collision-detection](/examples/collision-detection) example 
 
 To detect collisions between sprites in your scene you must do two things.
 
-- Ensure your scene update function calls `clunk.colision/update-state`.
+- Ensure your scene update function calls `clunk.collision/update-state`.
 - Add a collection of colliders to the scene under the `:colliders` key.
 
 ``` Clojure
