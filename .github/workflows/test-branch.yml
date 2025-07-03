@@ -4,6 +4,7 @@ on:
   push:
     branches:
       - "**"
+      - '!main' # ignore `main`, that gets tested before deploying
   pull_request:
     branches:
       - "**"
