@@ -253,7 +253,7 @@ You can play loaded files with `clunk.audio/play!` passing in the reference key 
 
 ## Input
 
-@TODO: document mouse, keyboard, handlers etc.
+@TODO: document mouse, keyboard, handlers, clickable sprites etc.
 
 ## The Game State
 
