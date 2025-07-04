@@ -1,7 +1,6 @@
 (ns clunk.input
+  (:require [clunk.collision :as collision])
   (:import (org.lwjgl.glfw GLFW)))
-
-;; @TODO: add `on-click` helper from quip, requires default mouse click handler
 
 (def PRESS GLFW/GLFW_PRESS)
 (def RELEASE GLFW/GLFW_RELEASE)
@@ -180,3 +179,49 @@
   ([event code action]
    (and (= (:k event) code)
         (= (:action event) action))))
+
+(defn default-key-pressed
+  "Add the pressed key to the set of currently held keys."
+  [state e]
+  (if (= PRESS (:action e))
+    (update state :held-keys #(conj % (:k e)))
+    state))
+
+(defn default-key-released
+  "Remove the released key from the set of currently held keys."
+  [state e]
+  (if (= RELEASE (:action e))
+    (update state :held-keys #(disj % (:k e)))
+    state))
+
+(defn default-mouse-pressed
+  "Check all `:clickable?` sprites for collision with the mouse event,
+  apply the `:on-click-fn` of all that have been clicked on."
+  [{:keys [scenes current-scene] :as state} e]
+  (if (= PRESS (:action e))
+    (let [sprites (get-in scenes [current-scene :sprites])
+          clickable (filter :clickable? sprites)]
+      (reduce (fn [acc {:keys [on-click-fn] :as s}]
+                ;; Using our most powerful (albeit expensive) collision detection.
+                (if (collision/pos-in-rotating-poly? e s)
+                  (on-click-fn acc s)
+                  acc))
+              state
+              clickable))
+    state))
+
+(defn add-on-click
+  "Make a sprite `:clickable?` by adding an `:on-click-fn` to be invoked
+  by the default mouse-pressed handler.
+
+  An `:on-click-fn` takes the game state and the clicked sprite and
+  should return the new game state."
+  [sprite f]
+  (-> sprite
+      (assoc :clickable? true)
+      (assoc :on-click-fn f)))
+
+(def default-event-fns
+  {:key-fns [default-key-pressed
+             default-key-released]
+   :mouse-button-fns [default-mouse-pressed]})

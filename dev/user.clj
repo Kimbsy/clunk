@@ -20,7 +20,11 @@
                     [500 50]
                     :vel [3 3]
                     :color p/green
-                    :points (shape/ellipse-points [60 60])
+                    ;; the default size is [20 20] so we shift the
+                    ;; bounding poly points by half otherwise they
+                    ;; center on the top-left corner of the sprite.
+                    :points (map (partial map + [10 10])
+                                 (shape/ellipse-points [60 60] :segments 8))
                     :debug? true
                     :debug-color p/white)
      (sprite/image-sprite :captain-sheet
@@ -28,27 +32,30 @@
                           [1680 1440]
                           :captain-spritesheet
                           :offsets [:left :top])
-     (sprite/animated-sprite :animated-captain
-                             [600 500]
-                             [240 360]
-                             :captain-spritesheet
-                             [1680 1440]
-                             :animations {:none {:frames 1
-                                                 :y-offset 0
-                                                 :frame-delay 100}
-                                          :idle {:frames 4
-                                                 :y-offset 1
-                                                 :frame-delay 15}
-                                          :run  {:frames 4
-                                                 :y-offset 2
-                                                 :frame-delay 8}
-                                          :jump {:frames 7
-                                                 :y-offset 3
-                                                 :frame-delay 8}}
-                             :current-animation :none
-                             :vel [2 -3]
-                             :debug? true
-                             :debug-color p/cyan)
+     (-> (sprite/animated-sprite :animated-captain
+                                [600 500]
+                                [240 360]
+                                :captain-spritesheet
+                                [1680 1440]
+                                :animations {:none {:frames 1
+                                                    :y-offset 0
+                                                    :frame-delay 100}
+                                             :idle {:frames 4
+                                                    :y-offset 1
+                                                    :frame-delay 15}
+                                             :run  {:frames 4
+                                                    :y-offset 2
+                                                    :frame-delay 8}
+                                             :jump {:frames 7
+                                                    :y-offset 3
+                                                    :frame-delay 8}}
+                                :current-animation :none
+                                :vel [2 -3]
+                                :debug? true
+                                :debug-color p/cyan)
+         (i/add-on-click (fn [state s]
+                           (prn "CLICKED THE CAPTAIN!")
+                           state)))
      (-> (sprite/image-sprite :example-image
                               (u/center window)
                               [322 346]
@@ -75,7 +82,6 @@
                        :yoyo? true
                        :yoyo-update-fn tween/tween-y-yoyo-fn
                        :repeat-times ##Inf)))
-
      (-> (sprite/text-sprite :example-text
                             [50 50]
                             "hello clunk game"
@@ -188,7 +194,7 @@
 
 (defn m1
   [state e]
-  (prn "m1" e)
+  ;; (prn "m1" e)
   (audio/play! :blip-1)
   state)
 

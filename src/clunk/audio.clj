@@ -53,22 +53,22 @@
   [buffer-key path]
   ;; decode .ogg -> AL buffer
   (with-open [stack (MemoryStack/stackPush)]
-    (let [channels (.mallocInt stack 1)
-          sample-rate (.mallocInt stack 1)
+    (let [p-channels (.mallocInt stack 1)
+          p-sample-rate (.mallocInt stack 1)
           raw-audio (STBVorbis/stb_vorbis_decode_filename
                      path
-                     channels
-                     sample-rate)]
+                     p-channels
+                     p-sample-rate)]
       (when-not raw-audio
         (throw (RuntimeException.
                 (str "Failed to load OGG: " (STBVorbis/stb_vorbis_get_error nil)))))
 
       ;; choose format based on channels
-      (let [fmt (if (= 1 (.get channels 0))
+      (let [fmt (if (= 1 (.get p-channels 0))
                   AL10/AL_FORMAT_MONO16
                   AL10/AL_FORMAT_STEREO16)
             al-buffer (AL10/alGenBuffers)]
-        (AL10/alBufferData al-buffer fmt raw-audio (.get sample-rate 0))
+        (AL10/alBufferData al-buffer fmt raw-audio (.get p-sample-rate 0))
 
         ;; we can free this up now it's in the buffer
         (MemoryUtil/memFree raw-audio)

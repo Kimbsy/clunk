@@ -11,8 +11,8 @@
   [texture-key path]
   ;; prepare buffers for width and height info
   (with-open [stack (MemoryStack/stackPush)]
-    (let [w (.mallocInt stack 1)
-          h (.mallocInt stack 1)
+    (let [p-w (.mallocInt stack 1)
+          p-h (.mallocInt stack 1)
           cmp (.mallocInt stack 1)]
       ;; tell STB to flip images on load if png origin differs
       (STBImage/stbi_set_flip_vertically_on_load false)
@@ -20,7 +20,7 @@
       ;; load the image (force 4 channel RGBA), we're not using
       ;; `cmp` (normally called `comp`) it grabs the number of
       ;; channels (components) actually found in the original image.
-      (let [image (STBImage/stbi_load path w h cmp 4)]
+      (let [image (STBImage/stbi_load path p-w p-h cmp 4)]
         (when-not image
           (throw (RuntimeException.
                   (str "Failed to load image '" path "': "
@@ -31,8 +31,8 @@
           (GL11/glTexImage2D GL11/GL_TEXTURE_2D
                              0
                              GL11/GL_RGBA8
-                             (.get w 0)
-                             (.get h 0)
+                             (.get p-w 0)
+                             (.get p-h 0)
                              0
                              GL11/GL_RGBA
                              GL11/GL_UNSIGNED_BYTE image)

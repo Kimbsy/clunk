@@ -1,6 +1,7 @@
 (ns clunk.core
   (:require [clunk.audio :as audio]
             [clunk.image :as image]
+            [clunk.input :as i]
             [clunk.palette :as p]
             [clunk.shape :as shape]
             [clunk.sprite :as sprite]
@@ -17,7 +18,8 @@
                              NVGColor)
            (org.lwjgl.opengl GL
                              GL11
-                             GL30)))
+                             GL30)
+           (org.lwjgl.system MemoryStack)))
 
 ;; FEATURES
 
@@ -139,10 +141,16 @@
          window
          (reify GLFWMouseButtonCallbackI
            (invoke [this win button action mods]
-             (enqueue-event! {:event-type :mouse-button
-                              :button button
-                              :action action
-                              :mods mods}))))
+             (with-open [stack (MemoryStack/stackPush)]
+               (let [p-x (.mallocDouble stack 1)
+                     p-y (.mallocDouble stack 1)]
+                 (GLFW/glfwGetCursorPos win p-x p-y)
+                 (enqueue-event! {:event-type :mouse-button
+                                  :button button
+                                  :action action
+                                  :mods mods
+                                  :pos [(.get p-x 0)
+                                        (.get p-y 0)]}))))))
 
         (let [[window-w window-h] (u/window-size window)
               ;; get the resolution of the primary monitor
@@ -225,11 +233,13 @@
    {:keys [event-type] :as e}]
   (let [scene (get scenes current-scene)
         kw (keyword (str (name event-type) "-fns"))
-        applicable-fns (get scene kw)]
+        applicable-fns (get scene kw)
+        default-fns (get i/default-event-fns kw)]
     (reduce (fn [acc f]
               (f acc e))
             state
-            applicable-fns)))
+            (concat default-fns
+                    applicable-fns))))
 
 (defn update-game
   "Update the game state based on the current scenes `:update-fn`.

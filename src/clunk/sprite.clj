@@ -80,7 +80,7 @@
   [{:keys [pos debug-color bounds-fn] :as s}]
   (let [offsets (pos-offsets s)
         points (bounds-fn s)]
-    (shape/draw-poly! pos points debug-color)))
+    (shape/draw-poly! (map + pos offsets) points debug-color)))
 
 (defn draw-center
   [{[x y] :pos
