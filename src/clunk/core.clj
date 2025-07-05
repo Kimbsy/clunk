@@ -241,18 +241,23 @@
             (concat default-fns
                     applicable-fns))))
 
+;; @TODO: add a `:dt` field which is the time in millis since the last frame
 (defn update-game
   "Update the game state based on the current scenes `:update-fn`.
 
   Applies all unprocessed events to the game."
-  [{:keys [scenes current-scene] :as state}]
+  [{:keys [scenes current-scene last-frame-time] :as state}]
   (let [unprocessed-events (drain-events!)
         scene-update-fn (or (get-in scenes [current-scene :update-fn])
-                            identity)]
-    (scene-update-fn
-     (reduce process-event
-             state
-             unprocessed-events))))
+                            identity)
+        now (System/currentTimeMillis)]
+    (-> state
+        (assoc :last-frame-time now)
+        (assoc :dt (- now last-frame-time))
+        (#(reduce process-event
+                  %
+                  unprocessed-events))
+        scene-update-fn)))
 
 (defn default-draw!
   [{:keys [vg default-font window current-scene] :as state}]
@@ -285,6 +290,8 @@
    :on-close-fn default-on-close
    :init-scenes-fn (constantly {})
    :current-scene :none
+   :last-frame-time 0
+   :dt 0
    :assets {}})
 
 (defn game

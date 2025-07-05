@@ -173,6 +173,7 @@
 ;; @TODO this ends up a little clunky (lol) maybe we can do something
 ;; nicer than (i/is e i/K_SPACE i/PRESS). At least this way we get
 ;; auto-completion.
+;; @TODO THIS DOESN'T WORK FOR MOUSE EVENTS, they use `:button` probably get rid all together
 (defn is
   ([event code]
    (= (:k event) code))

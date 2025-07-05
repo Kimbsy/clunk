@@ -3,6 +3,20 @@
   (:import (org.lwjgl.glfw GLFW)
            (org.lwjgl.system MemoryStack)))
 
+;;;; General helpers
+
+(defn split-by
+  "Split a collection using a predicate.
+
+  Returns `[things-that-were-true things-that-were-false]`."
+  [pred coll]
+  (reduce (fn [[yes no] x]
+            (if (pred x)
+              [(conj yes x) no]
+              [yes (conj no x)]))
+          [[] []]
+          coll))
+
 ;;;; LWJGL helpers
 
 (defn window-size

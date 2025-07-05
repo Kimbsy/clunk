@@ -255,6 +255,10 @@ You can play loaded files with `clunk.audio/play!` passing in the reference key 
 
 @TODO: document mouse, keyboard, handlers, clickable sprites etc.
 
+## Delays
+
+@TODO: document delays, sequential delays
+
 ## The Game State
 
 @TODO: document what fields exist and what they're for.

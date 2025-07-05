@@ -11,7 +11,8 @@
             [clunk.shape :as shape]
             [clunk.sprite :as sprite]
             [clunk.tween :as tween]
-            [clunk.util :as u]))
+            [clunk.util :as u]
+            [clunk.delay :as delay]))
 
 (defn sprites
   [{:keys [window vg] :as state}]
@@ -152,14 +153,16 @@
   (-> state
       sprite/update-state
       collision/update-state
-      tween/update-state))
+      tween/update-state
+      delay/update-state))
 
 (defn update-other
   [state]
   (-> state
       sprite/update-state
       collision/update-state
-      tween/update-state))
+      tween/update-state
+      delay/update-state))
 
 (defn draw-demo!
   [state]
@@ -200,8 +203,14 @@
 
 (defn m2
   [state e]
-  ;; (prn "m2" e)
-  state)
+  (prn "m2" e)
+  (if (and (= i/M_LEFT (:button e))
+           (= i/PRESS (:action e)))
+    (do (prn "adding delay")
+        (-> state
+            (delay/add-delay
+             (delay/delay 1000 (fn [state] (prn "DELAYED PRINT!!!") state)))))
+    state))
 
 (defn mm
   [state e]
