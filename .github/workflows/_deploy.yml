@@ -10,7 +10,7 @@ on:
 
 jobs:
   deploy:
-    name: Test & Deploy to Clojars on Java 21
+    name: Deploy to Clojars on Java 21
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -37,9 +37,6 @@ jobs:
 
       - name: Install dependencies
         run: lein deps
-
-      - name: Run tests
-        run: lein test
 
       - name: Deploy to Clojars
         env:

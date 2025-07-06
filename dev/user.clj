@@ -208,8 +208,12 @@
            (= i/PRESS (:action e)))
     (do (prn "adding delay")
         (-> state
-            (delay/add-delay
-             (delay/delay 1000 (fn [state] (prn "DELAYED PRINT!!!") state)))))
+            (delay/add-delay-fns
+             (delay/sequential-delay-fns
+              [[0 (fn [state] (prn "DELAYED PRINT 1!!!") state)]
+               [50 (fn [state] (prn "DELAYED PRINT 2!!!") state)]
+               [1000 (fn [state] (prn "DELAYED PRINT 3!!!") state)]]
+              :initial-delay 1000))))
     state))
 
 (defn mm
