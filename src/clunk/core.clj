@@ -292,7 +292,8 @@
    :current-scene :none
    :last-frame-time 0
    :dt 0
-   :assets {}})
+   :assets {}
+   :held-keys #{}})
 
 (defn game
   "Create a game config map"

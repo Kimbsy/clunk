@@ -19,6 +19,7 @@
 (def M_MIDDLE GLFW/GLFW_MOUSE_BUTTON_MIDDLE)
 (def M_RIGHT GLFW/GLFW_MOUSE_BUTTON_RIGHT)
 
+;; @TODO: support gamepad input
 (def G_AXIS_LAST GLFW/GLFW_GAMEPAD_AXIS_LAST)
 (def G_AXIS_LEFT_TRIGGER GLFW/GLFW_GAMEPAD_AXIS_LEFT_TRIGGER)
 (def G_AXIS_LEFT_X GLFW/GLFW_GAMEPAD_AXIS_LEFT_X)
@@ -170,16 +171,18 @@
 (def K_Y GLFW/GLFW_KEY_Y)
 (def K_Z GLFW/GLFW_KEY_Z)
 
-;; @TODO this ends up a little clunky (lol) maybe we can do something
-;; nicer than (i/is e i/K_SPACE i/PRESS). At least this way we get
-;; auto-completion.
-;; @TODO THIS DOESN'T WORK FOR MOUSE EVENTS, they use `:button` probably get rid all together
 (defn is
-  ([event code]
-   (= (:k event) code))
-  ([event code action]
-   (and (= (:k event) code)
-        (= (:action event) action))))
+  [e &
+   {:keys [action button mods]
+    k :key}]
+  (and (or (nil? action)
+           (= action (:action e)))
+       (or (nil? button)
+           (= button (:button e)))
+       (or (nil? k)
+           (= k (:k e)))
+       (or (nil? mods)
+           (= mods (:mods e)))))
 
 (defn default-key-pressed
   "Add the pressed key to the set of currently held keys."

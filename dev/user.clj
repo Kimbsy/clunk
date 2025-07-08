@@ -178,7 +178,7 @@
 (defn kp1
   [state e]
   ;; when we press space, transition to another scene
-  (if (i/is e i/K_SPACE i/PRESS)
+  (if (i/is e :key i/K_SPACE :action i/PRESS)
     (scene/transition
      state
      ((:current-scene state) {:other :demo
@@ -190,7 +190,7 @@
   [state e]
   ;;  (prn "kp2" e)
   ;; if we pres enter, enqueue a custom event
-  (when (i/is i/K_ENTER i/PRESS)
+  (when (i/is :key i/K_ENTER :action i/PRESS)
     (c/enqueue-event! {:event-type :other-event
                        :data {:a 1 :b 2}}))
   state)
