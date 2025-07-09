@@ -253,7 +253,71 @@ You can play loaded files with `clunk.audio/play!` passing in the reference key 
 
 ## Input
 
-@TODO: document mouse, keyboard, handlers, clickable sprites etc.
+There are three ways of handling use input in clunk.
+
+### The `:held-keys` field
+
+The game state maintains the set of currently held keys in the `:held-keys` field.
+
+``` Clojure
+(if (contains? (:held-keys state) i/K_ENTER)
+  (prn "ENTER IS HELD")
+  (prn "ENTER IS NOT HELD"))
+```
+
+### Clickable sprites
+
+You can make a sprite clickable with the `clunk.input/add-on-click` function which takes a sprite and a on-click function, this function takes the state and the sprite and returns an updated state.
+
+``` Clojure
+(-> (sprite/image-sprite :balloon
+                         [200 200]
+                         [32 32]
+                         :balloon)
+    (i/add-on-click (fn [state s]
+                      (pop-balloon state s)  ;; @TODO: implement me!
+                      state)))
+```
+
+### Event handlers
+
+The most flexible option is to define event handlers. Mouse buttons, mouse movement and keyboard events are supported.
+
+First define an event handler function, this takes the current state, the triggered event, and should return the new state.
+
+``` Clojure
+(defn mouse-handler-1
+  [state e]
+  (audio/play! :laser-gun)
+  state)
+```
+
+This handler function must be attached to your scene by putting it in the appropriate `<event-type>-fns` collection.
+
+``` Clojure
+(defn init-scenes
+  [state]
+  {:demo {:sprites (demo-sprites state)
+          :update-fn update-demo
+          :draw-fn draw-demo!
+          :mouse-button-fns [left-click-fire right-click-reload]
+          :mouse-movement-fns [move-reticule]
+          :key-fns [player-movement]}})
+```
+
+You technically only need one handler for each type of event, but having multiple small ones can make control flow simpler. Event handlers are invoked in the order they are listed.
+
+The `clunk.input/is` function is a helpful way of pattern matching on the events. Mouse events will have `:button` and `:action` fields, key events will have `:key` and `:action` fields.
+
+``` Clojure
+(defn key-handler-1
+  [state e]
+  (if (i/is e :key i/K_SPACE :action i/PRESS)
+    (update state :some-useful-flag not)
+    state))
+```
+
+@TODO: document custom event types and enqueueing events manually
 
 ## Delays
 
