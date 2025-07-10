@@ -64,17 +64,6 @@
   (GL11/glMatrixMode GL11/GL_MODELVIEW)
   (GL11/glLoadIdentity))
 
-(defn start-event-polling
-  [state]
-  ;; putting event polling in a separate thread (didn't do much for
-  ;; mouse event flood though)
-  (future
-    (while (not (GLFW/glfwWindowShouldClose (:window state)))
-      ;; poll for window events, the key callback above will only be
-      ;; invoked during this call
-      (GLFW/glfwPollEvents)
-      (Thread/sleep 1))))
-
 ;; @TODO: split this up into functions and do a (-> state ....) thread
 ;; @TODO: catch initialisation exceptions, and shut down gracefully
 (defn init
@@ -213,9 +202,6 @@
           (let [audio (audio/init-audio)
                 state (assoc state :audio audio)]
 
-            ;; start polling for events
-            (start-event-polling state)
-
             ;; return the initial game sate
             state))))))
 
@@ -302,6 +288,10 @@
 
 (defn main-loop
   [{:keys [window] :as state}]
+
+  ;; poll for window events
+  (GLFW/glfwPollEvents)
+
   ;; update the state
   (let [new-state (update-game state)]
 
