@@ -1,44 +1,53 @@
 (ns clunk.shape
-  (:require [clojure.math :as math])
-  (:import (org.lwjgl.opengl GL11)))
-
-(defn draw-poly!
-  [[x y] points [r g b a]]
-  (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
-  (GL11/glColor4f r g b a)
-  (GL11/glBegin GL11/GL_LINE_LOOP)
-  (doseq [[bx by] points]
-    (GL11/glVertex2f (+ x bx) (+ y by)))
-  (GL11/glEnd))
-
-(defn fill-poly!
-  [[x y] points [r g b a]]
-  (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
-  (GL11/glColor4f r g b a)
-  (GL11/glBegin GL11/GL_POLYGON)
-  (doseq [[bx by] points]
-    (GL11/glVertex2f (+ x bx) (+ y by)))
-  (GL11/glEnd))
-
-(defn draw-rect!
-  [pos [w h] color]
-  (draw-poly! pos
-              [[0 0]
-               [w 0]
-               [w h]
-               [0 h]]
-              color))
+  (:require [clojure.math :as math]
+            [clunk.graphics :as g])
+  (:import (org.lwjgl.nanovg NanoVG)))
 
 (defn fill-rect!
-  [[x y] [w h] [r g b a]]
-  (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
-  (GL11/glColor4f r g b a)
-  (GL11/glBegin GL11/GL_QUADS)
-  (GL11/glVertex2f x y)
-  (GL11/glVertex2f (+ x w) y)
-  (GL11/glVertex2f (+ x w) (+ y h))
-  (GL11/glVertex2f x (+ y h))
-  (GL11/glEnd))
+  "Fill a rectangle."
+  [vg [x y] [w h] color]
+  (let [c (g/nvg-color color)]
+    (NanoVG/nvgBeginPath vg)
+    (NanoVG/nvgRect vg x y w h)
+    (NanoVG/nvgFillColor vg c)
+    (NanoVG/nvgFill vg)))
+
+(defn draw-rect!
+  "Stroke a rectangle."
+  [vg [x y] [w h] color & {:keys [lw] :or {lw 1}}]
+  (let [c (g/nvg-color color)]
+    (NanoVG/nvgBeginPath vg)
+    (NanoVG/nvgRect vg x y w h)
+    (NanoVG/nvgStrokeColor vg c)
+    (NanoVG/nvgStrokeWidth vg lw)
+    (NanoVG/nvgStroke vg)))
+
+(defn fill-poly!
+  "Fill an arbitrary polygon where `points` are relative to `pos`."
+  [vg [pos-x pos-y] points color]
+  (let [c (g/nvg-color color)]
+    (NanoVG/nvgBeginPath vg)
+    (let [[x0 y0] (first points)]
+      (NanoVG/nvgMoveTo vg (+ pos-x x0) (+ pos-y y0)))
+    (doseq [[x y] (rest points)]
+      (NanoVG/nvgLineTo vg (+ pos-x x) (+ pos-y y)))
+    (NanoVG/nvgClosePath vg)
+    (NanoVG/nvgFillColor vg c)
+    (NanoVG/nvgFill vg)))
+
+(defn draw-poly!
+  "Stroke an arbitrary polygon where `points` are relative to `pos`."
+  [vg [pos-x pos-y] points color & {:keys [lw] :or {lw 1}}]
+  (let [c (g/nvg-color color)]
+    (NanoVG/nvgBeginPath vg)
+    (let [[x0 y0] (first points)]
+      (NanoVG/nvgMoveTo vg (+ pos-x x0) (+ pos-y y0)))
+    (doseq [[x y] (rest points)]
+      (NanoVG/nvgLineTo vg (+ pos-x x) (+ pos-y y)))
+    (NanoVG/nvgClosePath vg)
+    (NanoVG/nvgStrokeColor vg c)
+    (NanoVG/nvgStrokeWidth vg lw)
+    (NanoVG/nvgStroke vg)))
 
 (defn ellipse-points
   [[w h] & {:keys [segments] :or {segments 32}}]
@@ -51,9 +60,9 @@
          (* ry (math/sin r))]))))
 
 (defn draw-ellipse!
-  [pos size color]
-  (draw-poly! pos (ellipse-points size) color))
+  [vg pos size color]
+  (draw-poly! vg pos (ellipse-points size) color))
 
 (defn fill-ellipse!
-  [pos size color]
-  (fill-poly! pos (ellipse-points size) color))
+  [vg pos size color]
+  (fill-poly! vg pos (ellipse-points size) color))

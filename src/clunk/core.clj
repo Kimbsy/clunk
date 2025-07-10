@@ -180,6 +180,9 @@
         ;; available for use
         (GL/createCapabilities)
 
+        ;; we're using NanoVG so we can turn off depth testing
+        (GL11/glDisable GL11/GL_DEPTH_TEST)
+
         ;; @TODO: this should use the current screen size, not the initial (we're crashing when window is resized right now)
         ;; @NOTE test setting orthographic mode so we can use pixel positions for vertices
         (reset-ortho-projection initial-window-width initial-window-height)

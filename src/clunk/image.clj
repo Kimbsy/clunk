@@ -1,7 +1,34 @@
 (ns clunk.image
   (:import (org.lwjgl.opengl GL11 GL30)
            (org.lwjgl.stb STBImage)
-           (org.lwjgl.system MemoryStack)))
+           (org.lwjgl.system MemoryStack)
+           (org.lwjgl.nanovg NanoVG
+                             NVGColor)
+           (org.lwjgl.opengl GL11)))
+
+(def images (atom {}))
+
+(defn load-image!
+  "Load an image from disk, returns an NanoVG image ID."
+  [vg image-key path]
+  (let [img-id (NanoVG/nvgCreateImage vg path 0)]
+    (when (< img-id 0)
+      (throw (RuntimeException.
+              (str "Failed to load image: " path))))
+    (swap! images assoc image-key img-id)
+    img-id))
+
+(defn draw-image!
+  "Draw an image-id at x,y with size w×h, optional alpha."
+  ([{:keys [vg]} img-id x y w h]
+   (draw-image! {:vg vg} img-id x y w h 1.0))
+  ([{:keys [vg]} img-id x y w h alpha]
+   (let [paint (NanoVG/nvgImagePattern
+                vg x y w h 0.0 alpha img-id (NVGColor/create))]
+     (NanoVG/nvgBeginPath vg)
+     (NanoVG/nvgRect      vg x y w h)
+     (NanoVG/nvgFillPaint vg paint)
+     (NanoVG/nvgFill      vg))))
 
 (def textures (atom {}))
 
