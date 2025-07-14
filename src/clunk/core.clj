@@ -1,12 +1,14 @@
 (ns clunk.core
-  (:require [clunk.audio :as audio]
+  (:require [clojure.java.io :as io]
+            [clunk.audio :as audio]
             [clunk.image :as image]
             [clunk.input :as i]
             [clunk.palette :as p]
             [clunk.shape :as shape]
             [clunk.sprite :as sprite]
             [clunk.util :as u])
-  (:import (org.lwjgl.glfw Callbacks
+  (:import (org.lwjgl BufferUtils)
+           (org.lwjgl.glfw Callbacks
                            GLFW
                            GLFWCursorPosCallbackI
                            GLFWErrorCallback
@@ -64,16 +66,19 @@
   (GL11/glMatrixMode GL11/GL_MODELVIEW)
   (GL11/glLoadIdentity))
 
-(defn start-event-polling
-  [state]
-  ;; putting event polling in a separate thread (didn't do much for
-  ;; mouse event flood though)
-  (future
-    (while (not (GLFW/glfwWindowShouldClose (:window state)))
-      ;; poll for window events, the key callback above will only be
-      ;; invoked during this call
-      (GLFW/glfwPollEvents)
-      (Thread/sleep 1))))
+(defn create-font-mem
+  "Load a .ttf from a classpath resource and register it as `name` in
+  the NanoVG context `vg`."
+  [vg name classpath-resource]
+  (with-open [is (io/input-stream (io/resource classpath-resource))]
+    ;; read all bytes
+    (let [ba (byte-array (.available is))]
+      (.read is ba)
+      ;; wrap into a direct ByteBuffer
+      (let [buf (doto (BufferUtils/createByteBuffer (alength ba))
+                  (.put ba)
+                  (.flip))]
+        (NanoVG/nvgCreateFontMem vg name buf false)))))
 
 ;; @TODO: split this up into functions and do a (-> state ....) thread
 ;; @TODO: catch initialisation exceptions, and shut down gracefully
@@ -198,7 +203,8 @@
         (let [vg (NanoVGGL3/nvgCreate (bit-or NanoVGGL3/NVG_ANTIALIAS
                                               NanoVGGL3/NVG_STENCIL_STROKES))
               ;; load a font
-              font (NanoVG/nvgCreateFont vg "sans" "resources/font/UbuntuMono-Regular.ttf")
+              font (create-font-mem vg "UbuntuMono-Regular" "font/UbuntuMono-Regular.ttf")
+              ;; @TODO: register other default fonts?
               ;; stick them in the state
               state (-> state
                         (assoc :vg vg)
@@ -381,3 +387,7 @@
     (GLFW/glfwTerminate)
     (-> (GLFW/glfwSetErrorCallback nil)
         .free)))
+
+(defn quit!
+  [{:keys [window]}]
+  (GLFW/glfwSetWindowShouldClose window true))

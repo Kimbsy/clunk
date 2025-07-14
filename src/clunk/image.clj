@@ -1,5 +1,6 @@
 (ns clunk.image
-  (:import (org.lwjgl.opengl GL11 GL30)
+  (:import (org.lwjgl.opengl GL11
+                             GL30)
            (org.lwjgl.stb STBImage)
            (org.lwjgl.system MemoryStack)))
 

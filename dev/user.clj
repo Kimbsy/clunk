@@ -190,7 +190,7 @@
   [state e]
   ;;  (prn "kp2" e)
   ;; if we pres enter, enqueue a custom event
-  (when (i/is :key i/K_ENTER :action i/PRESS)
+  (when (i/is e :key i/K_ENTER :action i/PRESS)
     (c/enqueue-event! {:event-type :other-event
                        :data {:a 1 :b 2}}))
   state)

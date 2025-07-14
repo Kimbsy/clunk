@@ -277,11 +277,22 @@
     (GL11/glDisable GL11/GL_BLEND))
   (GL30/glBlendFuncSeparate src-rgb dst-rgb src-alpha dst-alpha))
 
-;; @TODO: respect offsets
 (defn draw-text-sprite!
   [{:keys [window vg vg-color default-font] :as state}
-   {:keys [pos content font font-size color rotation] :as s}]
-  (let [[x y] pos
+   {:keys [content font font-size color rotation]
+    [x0 y0 :as pos] :pos
+    [w h] :size
+    :as s}]
+  (let [[off-x _] (pos-offsets s)
+        ;; text is drawn with different defaults than other things, so
+        ;; we need to modify the pos-offsets rules for the y axis.
+        off (second (:offsets s))
+        off-y (cond
+                (= :top off) h
+                (= :bottom off) 0
+                (#{:center :centre} off) (/ h 2)
+                :else (/ h 2))
+        [x y] [(+ x0 off-x) (+ y0 off-y)]
         [r g b a] (map float color)
         a (or a (float 1)) ;; default alpha
         font (or font default-font)
@@ -322,13 +333,13 @@
          vel [0 0]
          update-fn identity
          draw-fn draw-text-sprite!
-         offsets [:left :bottom]
-         ;; @TODO:  name fonts better
-         font "sans"
+         offsets [:center]
+         font "UbuntuMono-Regular"
          font-size 32
          color p/white
          debug? false
-         debug-color p/red}}]
+         debug-color p/red
+         extra {}}}]
   (merge
    (sprite sprite-group pos)
    {:draw-requires-state? true
@@ -350,7 +361,8 @@
                      default-bounding-poly))
     :offsets offsets
     :debug? debug?
-    :debug-color debug-color}))
+    :debug-color debug-color}
+   extra))
 
 (defn update-state
   "Update each sprite in the current scene using its `:update-fn`."

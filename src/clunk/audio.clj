@@ -1,8 +1,13 @@
 (ns clunk.audio
-  (:import (java.nio ByteBuffer IntBuffer)
-           (org.lwjgl.openal AL AL10 ALC ALC10)
+  (:import (java.nio ByteBuffer
+                     IntBuffer)
+           (org.lwjgl.openal AL
+                             AL10
+                             ALC
+                             ALC10)
            (org.lwjgl.stb STBVorbis)
-           (org.lwjgl.system MemoryStack MemoryUtil)))
+           (org.lwjgl.system MemoryStack
+                             MemoryUtil)))
 
 (def buffers (atom {}))
 (def sources (atom #{}))
