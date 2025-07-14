@@ -219,9 +219,6 @@
           (let [audio (audio/init-audio)
                 state (assoc state :audio audio)]
 
-            ;; start polling for events
-            (start-event-polling state)
-
             ;; return the initial game sate
             state))))))
 
