@@ -308,6 +308,10 @@
 
 (defn main-loop
   [{:keys [window] :as state}]
+
+  ;; poll for window events
+  (GLFW/glfwPollEvents)
+
   ;; update the state
   (let [new-state (update-game state)]
 
