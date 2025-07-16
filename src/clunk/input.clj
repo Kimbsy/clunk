@@ -1,6 +1,7 @@
 (ns clunk.input
   (:require [clunk.collision :as collision])
-  (:import (org.lwjgl.glfw GLFW)))
+  (:import (org.lwjgl.glfw GLFW)
+           (org.lwjgl.system MemoryStack)))
 
 (def PRESS GLFW/GLFW_PRESS)
 (def RELEASE GLFW/GLFW_RELEASE)
@@ -185,6 +186,15 @@
            (= k (:k e)))
        (or (nil? mods)
            (= mods (:mods e)))))
+
+(defn mouse-pos
+  [{:keys [window]}]
+  (with-open [stack (MemoryStack/stackPush)]
+    (let [p-x (.mallocDouble stack 1)
+          p-y (.mallocDouble stack 1)]
+      (GLFW/glfwGetCursorPos window p-x p-y)
+      [(.get p-x 0)
+       (.get p-y 0)])))
 
 (defn default-key-pressed
   "Add the pressed key to the set of currently held keys."

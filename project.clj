@@ -1,4 +1,4 @@
-(defproject com.kimbsy/clunk "0.4.2"
+(defproject com.kimbsy/clunk "0.5.0-SNAPSHOT"
   :description "A 2D game engine based on LWJGL (Light Weight Java Game Library)"
   :url "https://github.com/Kimbsy/clunk"
   :license {:name "MIT License"
