@@ -1,6 +1,32 @@
 (ns clunk.shape
-  (:require [clojure.math :as math])
+  (:require [clojure.math :as math]
+            [clunk.util :as u])
   (:import (org.lwjgl.opengl GL11)))
+
+(defn left-turn?
+  [[ax ay] [bx by] [cx cy]]
+  (let [v1 [(- bx ax) (- by ay) 0]
+        v2 [(- cx bx) (- cy by) 0]]
+    (>= 0 (last (u/cross v1 v2)))))
+
+(defn pos-in-tri?
+  [pos [a b c]]
+  (every? true?
+          (map (partial apply left-turn?)
+               [[a b pos]
+                [b c pos]
+                [c a pos]])))
+
+(defn draw-line!
+  [[x1 y1] [x2 y2] [r g b a]]
+  (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
+  (GL11/glColor4f r g b a)
+  ;; @TODO: support line-width for all draw-<shape>! functions
+  ;; (GL11/glLineWidth 2.0)
+  (GL11/glBegin GL11/GL_LINES)
+  (GL11/glVertex2f x1 y1)
+  (GL11/glVertex2f x2 y2)
+  (GL11/glEnd))
 
 (defn draw-poly!
   [[x y] points [r g b a]]

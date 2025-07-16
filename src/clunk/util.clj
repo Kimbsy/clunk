@@ -160,3 +160,10 @@
   "Calculate the rotation angle of a vector."
   [[x y]]
   (math/to-degrees (math/atan2 x y)))
+
+(defn cross
+  "Calculate the cross product of two vectors."
+  [[ax ay az] [bx by bz]]
+  [(- (* ay bz) (* az by))
+   (- (* az bx) (* ax bz))
+   (- (* ax by) (* ay bx))])

@@ -2,7 +2,7 @@
 
 (defn rand-color
   []
-  [(rand) (rand) (rand) (rand)])
+  [(rand) (rand) (rand) 1])
 
 (defn hex->rgba
   ([hex-string]
