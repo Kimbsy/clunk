@@ -17,6 +17,13 @@
           [[] []]
           coll))
 
+(defn remove-nth
+  "Remove the nth element from a collection."
+  [n xs]
+  (keep-indexed
+   #(when (not= n %1) %2)
+   xs))
+
 ;;;; LWJGL helpers
 
 (defn window-size
@@ -43,14 +50,6 @@
   [window [x-factor y-factor]]
   (let [[w h] (window-size window)]
     [(* w x-factor) (* h y-factor)]))
-
-;;;; Geometry helpers
-
-(defn poly-lines
-  "Construct the lines that make up a polygon from its points."
-  [poly]
-  (partition 2 1 (take (inc (count poly))
-                       (cycle poly))))
 
 ;;; Vector helpers
 
@@ -167,3 +166,27 @@
   [(- (* ay bz) (* az by))
    (- (* az bx) (* ax bz))
    (- (* ax by) (* ay bx))])
+
+;;;; Geometry helpers
+
+(defn poly-lines
+  "Construct the lines that make up a polygon from its points."
+  [poly]
+  (partition 2 1 (take (inc (count poly))
+                       (cycle poly))))
+
+(defn left-turn?
+  "Is the corner from A->B->C a left turn?"
+  [[ax ay] [bx by] [cx cy]]
+  (let [v1 [(- bx ax) (- by ay) 0]
+        v2 [(- cx bx) (- cy by) 0]]
+    (>= 0 (last (cross v1 v2)))))
+
+(defn pos-in-tri?
+  "Is the position `pos` inside the triangle ABC?"
+  [pos [a b c]]
+  (every? true?
+          (map (partial apply left-turn?)
+               [[a b pos]
+                [b c pos]
+                [c a pos]])))

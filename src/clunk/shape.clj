@@ -3,19 +3,47 @@
             [clunk.util :as u])
   (:import (org.lwjgl.opengl GL11)))
 
-(defn left-turn?
-  [[ax ay] [bx by] [cx cy]]
-  (let [v1 [(- bx ax) (- by ay) 0]
-        v2 [(- cx bx) (- cy by) 0]]
-    (>= 0 (last (u/cross v1 v2)))))
+(defn other-points
+  "Return the points which are not in the ear starting at index `i`"
+  [i points]
+  (let [n (count points)
+        repeating (cycle points)]
+    (cond
+      (= i 0) (drop 3 points)
+      (= i (- n 1)) (drop 2 (butlast points))
+      (= i (- n 2)) (rest (drop-last 2 points))
+      (= i (- n 3)) (drop-last 3 points)
+      :else (concat (take i points)
+                    (drop (+ i 3) points)))))
 
-(defn pos-in-tri?
-  [pos [a b c]]
-  (every? true?
-          (map (partial apply left-turn?)
-               [[a b pos]
-                [b c pos]
-                [c a pos]])))
+(defn all-ears
+  "Return all the ears of a polygon"
+  [points]
+  (keep-indexed
+   (fn [i [a b c]]
+     (when (and (u/left-turn? a b c)
+                (not (some #(u/pos-in-tri? % [a b c])
+                           (other-points i points))))
+       [i [a b c]]))
+   (->> points
+        cycle
+        (take (+ 2 (count points)))
+        (partition 3 1))))
+
+(defn triangulate
+  "Split a concave polygon with no holes or overlapping edges into a
+  collection of triangles which can be drawn."
+  [poly]
+  (loop [p poly
+         tris []]
+    (if (seq p)
+      (if-let [[i tri] (first (all-ears p))]
+        (recur (u/remove-nth (mod (inc i) (count p)) p)
+               (conj tris tri))
+        (do (prn "FOUND NO EARS????")
+            (prn p)
+            tris))
+      tris)))
 
 (defn draw-line!
   [[x1 y1] [x2 y2] [r g b a]]
@@ -45,6 +73,12 @@
   (doseq [[bx by] points]
     (GL11/glVertex2f (+ x bx) (+ y by)))
   (GL11/glEnd))
+
+(defn fill-concave-poly!
+  [pos points color]
+  (let [poly points]
+    (doseq [t (triangulate poly)]
+      (fill-poly! pos t color))))
 
 (defn draw-rect!
   [pos [w h] color]
