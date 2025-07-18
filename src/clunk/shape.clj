@@ -3,6 +3,8 @@
             [clunk.util :as u])
   (:import (org.lwjgl.opengl GL11)))
 
+(def default-line-width 1)
+
 (defn other-points
   "Return the points which are not in the ear starting at index `i`"
   [i points]
@@ -46,20 +48,24 @@
       tris)))
 
 (defn draw-line!
-  [[x1 y1] [x2 y2] [r g b a]]
+  [[x1 y1] [x2 y2] [r g b a] &
+   {:keys [line-width]
+    :or {line-width default-line-width}}]
   (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
   (GL11/glColor4f r g b a)
-  ;; @TODO: support line-width for all draw-<shape>! functions
-  ;; (GL11/glLineWidth 2.0)
+  (GL11/glLineWidth line-width)
   (GL11/glBegin GL11/GL_LINES)
   (GL11/glVertex2f x1 y1)
   (GL11/glVertex2f x2 y2)
   (GL11/glEnd))
 
 (defn draw-poly!
-  [[x y] points [r g b a]]
+  [[x y] points [r g b a] &
+   {:keys [line-width]
+    :or {line-width default-line-width}}]
   (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
   (GL11/glColor4f r g b a)
+  (GL11/glLineWidth line-width)
   (GL11/glBegin GL11/GL_LINE_LOOP)
   (doseq [[bx by] points]
     (GL11/glVertex2f (+ x bx) (+ y by)))
@@ -81,13 +87,14 @@
       (fill-poly! pos t color))))
 
 (defn draw-rect!
-  [pos [w h] color]
+  [pos [w h] color & opts]
   (draw-poly! pos
               [[0 0]
                [w 0]
                [w h]
                [0 h]]
-              color))
+              color
+              opts))
 
 (defn fill-rect!
   [[x y] [w h] [r g b a]]
@@ -101,7 +108,9 @@
   (GL11/glEnd))
 
 (defn ellipse-points
-  [[w h] & {:keys [segments] :or {segments 32}}]
+  [[w h] &
+   {:keys [segments]
+    :or {segments 32}}]
   (let [rx (/ w 2)
         ry (/ h 2)
         dr (/ (* 2 math/PI) segments)]
@@ -111,8 +120,8 @@
          (* ry (math/sin r))]))))
 
 (defn draw-ellipse!
-  [pos size color]
-  (draw-poly! pos (ellipse-points size) color))
+  [pos size color & opts]
+  (draw-poly! pos (ellipse-points size) color opts))
 
 (defn fill-ellipse!
   [pos size color]
