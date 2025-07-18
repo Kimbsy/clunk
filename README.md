@@ -88,6 +88,8 @@ In order to use images for your sprites, you must declare them in the game confi
 
 The default `clunk.sprite/sprite` function returns a minimal sprite which draws itself as a red box. You can give it a new `:draw-fn` using keyword args to override this.
 
+;; @TODO: document geometry-sprite
+
 The `clunk.sprite/image-sprite` function creates a sprite which draws an image. (This image must be declared as an `:asset` in the game config).
 
 The `clunk.sprite/animated-sprite` function creates an image sprite which draws sections of a sprite sheet image, configured by its `:animations` and `:current-animation` keyword args.

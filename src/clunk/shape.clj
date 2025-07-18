@@ -113,11 +113,12 @@
     :or {segments 32}}]
   (let [rx (/ w 2)
         ry (/ h 2)
-        dr (/ (* 2 math/PI) segments)]
+        ;; negative dr gives us points in CCW order
+        dr (- (/ (* 2 math/PI) segments))]
     (for [i (range segments)]
       (let [r (* i dr)]
-        [(* rx (math/cos r))
-         (* ry (math/sin r))]))))
+        [(+ rx (* rx (math/cos r)))
+         (+ ry (* ry (math/sin r)))]))))
 
 (defn draw-ellipse!
   [pos size color & opts]

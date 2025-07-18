@@ -18,16 +18,25 @@
   [{:keys [window vg] :as state}]
   (let [[window-w window-h] (u/window-size window)]
     [(sprite/sprite :example
-                    [500 50]
+                    [80 500]
                     :vel [3 3]
                     :color p/green
                     ;; the default size is [20 20] so we shift the
                     ;; bounding poly points by half otherwise they
                     ;; center on the top-left corner of the sprite.
-                    :points (map (partial map + [10 10])
-                                 (shape/ellipse-points [60 60] :segments 8))
+                    :points (shape/ellipse-points [60 60] :segments 8)
+                    :size [60 60]
                     :debug? true
                     :debug-color p/white)
+     (sprite/geometry-sprite :geom
+                             [window-w 300]
+                             (shape/ellipse-points [120 60] :segments 3)
+                             :size [120 60]
+                             :offsets [:right :center]
+                             :fill? true
+                             :color p/grey
+                             :debug? true
+                             :debug-color p/white)
      (sprite/image-sprite :captain-sheet
                           [100 100]
                           [1680 1440]
@@ -84,7 +93,7 @@
                        :yoyo-update-fn tween/tween-y-yoyo-fn
                        :repeat-times ##Inf)))
      (-> (sprite/text-sprite :example-text
-                            [50 50]
+                            [250 50]
                             "hello clunk game"
                             :vel [-2 -3]
                             :update-fn sprite/update-pos
@@ -138,11 +147,15 @@
      (fn [{:keys [current-animation] :as animated-captain} _example-sprite]
        (-> animated-captain
            (assoc :pos [600 500])
+           (update-in [:vel 0] (rand-nth [- identity]))
+           (update-in [:vel 1] (rand-nth [- identity]))
            (sprite/set-animation (rand-nth (remove #{current-animation}
                                                    [:none :idle :run :jump])))))
      (fn [example-sprite _animated-captain]
        (-> example-sprite
            (assoc :pos [700 100])
+           (update-in [:vel 0] (rand-nth [- identity]))
+           (update-in [:vel 1] (rand-nth [- identity]))
            (assoc :color [(rand) (rand) (rand) 1]))))]
    (wall-colliders :animated-captain)
    (wall-colliders :example)

@@ -88,6 +88,13 @@
   (shape/draw-rect! [(- x 20) y] [40 2] color)
   (shape/draw-rect! [x (- y 20)] [2 40] color))
 
+(defn draw-geometry-sprite!
+  [{:keys [pos size points color fill? line-width] :as s}]
+  (let [offsets (pos-offsets s)]
+    (if fill?
+      (shape/fill-concave-poly! (map + pos offsets) points color)
+      (shape/draw-poly! (map + pos offsets) points color :line-width line-width))))
+
 (defn draw-image-sprite!
   [{:keys [pos size image-texture rotation] :as s}]
   (let [offsets (pos-offsets s)]
@@ -168,7 +175,53 @@
     :offsets offsets}
    extra))
 
-;; @TODO: geometry-sprite
+(defn geometry-sprite
+  [sprite-group pos points &
+   {:keys [rotation
+           size
+           vel
+           update-fn
+           draw-fn
+           bounds-fn
+           offsets
+           color
+           fill?
+           line-width
+           debug?
+           debug-color
+           extra]
+    :or  {rotation 0
+          size (let [xs (sort (map first points))
+                     ys (sort (map second points))]
+                 [(- (last xs) (first ys))
+                  (- (last xs) (first ys))])
+          vel [0 0]
+          update-fn update-pos
+          draw-fn draw-geometry-sprite!
+          bounds-fn :points
+          offsets [:center]
+          color p/white
+          fill? false
+          line-width 2
+          debug? false
+          debug-color p/red
+          extra {}}}]
+  (merge
+   (sprite sprite-group pos)
+   {:size size
+    :rotation rotation
+    :vel vel
+    :update-fn update-fn
+    :draw-fn draw-fn
+    :points points
+    :bounds-fn bounds-fn
+    :color color
+    :fill? fill?
+    :line-width line-width
+    :debug? debug?
+    :debug-color debug-color
+    :offsets offsets}
+   extra))
 
 (defn image-sprite
   [sprite-group pos size image-texture-key &
