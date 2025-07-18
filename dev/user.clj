@@ -28,7 +28,7 @@
                     :size [60 60]
                     :debug? true
                     :debug-color p/white)
-     (sprite/geometry-sprite :geom
+     (sprite/geometry-sprite :right-side-indicator
                              [window-w 300]
                              (shape/ellipse-points [120 60] :segments 3)
                              :size [120 60]
@@ -234,6 +234,14 @@
   ;; (prn "mm" e)
   state)
 
+(defn wr
+  [state {[w _h] :size :as e}]
+  (-> state
+      (sprite/update-sprites
+       (sprite/has-group :right-side-indicator)
+       (fn [s]
+         (assoc-in s [:pos 0] w)))))
+
 ;; handle custom events
 (defn other
   [state e]
@@ -249,6 +257,7 @@
           :key-fns [kp1 kp2]
           :mouse-button-fns [m1 m2]
           :mouse-movement-fns [mm]
+          :window-resize-fns [wr]
           ;; define some custom event handlers
           :other-event-fns [other]}
    :other {:sprites (sprites state)

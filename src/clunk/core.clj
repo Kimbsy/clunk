@@ -23,13 +23,7 @@
                              GL30)
            (org.lwjgl.system MemoryStack)))
 
-;; FEATURES
-
-;; @TODO: need to look into timers
-
 ;; BUGS
-
-;; @TODO: crashing on window resize (ortho projection?)
 
 ;; @TODO: need to be able to handle exceptions a bit better, currently
 ;; it kills the repl
@@ -39,8 +33,8 @@
 ;; @TODO pare this down
 (def initial-state
   {:window nil
-   :scenes {:demo {:sprites []}}
-   :current-scene :demo
+   :scenes {}
+   :current-scene nil
    :debug? false})
 
 (def empty-queue clojure.lang.PersistentQueue/EMPTY)
@@ -196,7 +190,10 @@
              ;; update the GL viewport to cover the new window
              (GL11/glViewport 0 0 w h)
              ;; re-build the ortho projection matrix to match the new size
-             (reset-ortho-projection w h))))
+             (reset-ortho-projection w h)
+             ;; let the game respond to window resizing by emitting an event
+             (enqueue-event! {:event-type :window-resize
+                              :size [w h]}))))
 
         ;;;; initialise text rendering stuff
         ;; create NanoVG context
