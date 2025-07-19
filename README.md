@@ -12,9 +12,17 @@ It's currently very early in it's development, but it has support for sprites (s
 
 It's still a little rough round the edges, please feel free to raise issues for anything that trips you up.
 
-## Getting Started
+## Getting Started quickly
 
-Take a look at the games in the [examples](/examples) directory.
+Create a new game using the Leiningen template:
+
+``` Bash
+lein new com.kimbsy/clunk my-game
+```
+
+Take a look at the games in the [examples](/examples) directory, these simple games demonstrate various clunk features.
+
+## Getting started slowly
 
 To make a simple game start with the `clunk.core/game` function and run it with `clunk.core/start!`:
 
@@ -88,7 +96,7 @@ In order to use images for your sprites, you must declare them in the game confi
 
 The default `clunk.sprite/sprite` function returns a minimal sprite which draws itself as a red box. You can give it a new `:draw-fn` using keyword args to override this.
 
-;; @TODO: document geometry-sprite
+The `clunk.sprite/geometry-sprite` function returns a sprite which draws a polygon shape specified by a sequence of points (`[x y]` vectors) relative to the sprite `pos`. These points should be listed in counter-clockwise (CCW) order.
 
 The `clunk.sprite/image-sprite` function creates a sprite which draws an image. (This image must be declared as an `:asset` in the game config).
 
@@ -100,6 +108,12 @@ The `clunk.sprite/text-sprite` function creates a sprite which draws itself as t
 (defn demo-sprites
   [state]
   [(sprite/sprite :player [100 100])
+
+   (sprite/geometry-sprite :poly
+                           [350 350]
+                           [[0 0]
+                            [10 0]
+                            [5 10]])
 
    (sprite/image-sprite :health
                         [200 200]
