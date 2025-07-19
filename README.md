@@ -297,7 +297,7 @@ You can make a sprite clickable with the `clunk.input/add-on-click` function whi
 
 ### Event handlers
 
-The most flexible option is to define event handlers. Mouse buttons, mouse movement and keyboard events are supported.
+The most flexible option is to define event handlers. Mouse buttons, mouse movement, window resize and keyboard events are supported.
 
 First define an event handler function, this takes the current state, the triggered event, and should return the new state.
 
@@ -318,7 +318,8 @@ This handler function must be attached to your scene by putting it in the approp
           :draw-fn draw-demo!
           :mouse-button-fns [left-click-fire right-click-reload]
           :mouse-movement-fns [move-reticule]
-          :key-fns [player-movement]}})
+          :key-fns [player-movement]
+          :window-resize-fns [update-world-bounds]}})
 ```
 
 You technically only need one handler for each type of event, but having multiple small ones can make control flow simpler. Event handlers are invoked in the order they are listed.
@@ -333,7 +334,33 @@ The `clunk.input/is` function is a helpful way of pattern matching on the events
     state))
 ```
 
-@TODO: document custom event types and enqueueing events manually
+#### Custom events
+
+You can create your on events which will be handled in the same way using the `clunk.core/enqueue-event!` function. Your event should be a map containing an `:event-type` and any data that your handler will need. Your handlers should be registered in the scene under the `:<event-type>-fns` key.
+
+``` Clojure
+;; Anywhere in your game code
+(c/enqueue-event! {:event-type :my-event
+                   :time 42
+                   :space 9000})
+
+;; Event handler
+(defn handle-custom-events
+  [state {:keys [time space]}
+   (modify-foo state time space)])
+
+;; Register event handlers in the scene
+(defn init-scenes
+  [state]
+  {:demo {:sprites (demo-sprites state)
+          :update-fn update-demo
+          :draw-fn draw-demo!
+          :my-event-fns [handle-custom-events]}})
+```
+
+This can be handy as a bit of an impure escape hatch since your handler (when processed, normally on the next frame) is passed the whole game state and can modify anything it likes.
+
+Generally you should avoid _overusing_ this feature since it leads to hard to debug code.
 
 ## Delays
 
