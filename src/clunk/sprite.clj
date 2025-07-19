@@ -92,7 +92,9 @@
   [{:keys [pos size points color fill? line-width] :as s}]
   (let [offsets (pos-offsets s)]
     (if fill?
-      (shape/fill-concave-poly! (map + pos offsets) points color)
+      (if (u/convex? points)
+        (shape/fill-poly! (map + pos offsets) points color)
+        (shape/fill-concave-poly! (map + pos offsets) points color))
       (shape/draw-poly! (map + pos offsets) points color :line-width line-width))))
 
 (defn draw-image-sprite!

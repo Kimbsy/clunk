@@ -167,6 +167,7 @@
    (- (* az bx) (* ax bz))
    (- (* ax by) (* ay bx))])
 
+;; @TODO: should these live in `clunk.shape`?
 ;;;; Geometry helpers
 
 (defn poly-lines
@@ -181,6 +182,16 @@
   (let [v1 [(- bx ax) (- by ay) 0]
         v2 [(- cx bx) (- cy by) 0]]
     (>= 0 (last (cross v1 v2)))))
+
+(defn convex?
+  "Are all the corners of the polygon turning in the same direction?"
+  [poly]
+  (->> (cycle poly)
+       (take (+ 2 (count poly)))
+       (partition 3 1)
+       (map (fn [[a b c]]
+              (left-turn? a b c)))
+       (apply =)))
 
 (defn pos-in-tri?
   "Is the position `pos` inside the triangle ABC?"
