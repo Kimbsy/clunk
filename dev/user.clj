@@ -189,15 +189,21 @@
       sprite/draw-scene-sprites!))
 
 (defn kp1
-  [state e]
-  ;; when we press space, transition to another scene
-  (if (i/is e :key i/K_SPACE :action i/PRESS)
+  [{:keys [restart-fn] :as state} e]
+  (cond
+    ;; when we press space, transition to another scene
+    (i/is e :key i/K_SPACE :action i/PRESS)
     (scene/transition
      state
      ((:current-scene state) {:other :demo
                               :demo :other})
      :transition-length 60)
-    state))
+
+    ;; when we press r, reset the game
+    (i/is e :key i/K_R :action i/PRESS)
+    (restart-fn state)
+
+    :else state))
 
 (defn kp2
   [state e]
@@ -265,9 +271,16 @@
            :update-fn update-other
            :draw-fn draw-other!}})
 
+(defn restart
+  [{:keys [init-scenes-fn] :as state}]
+  (prn "RESTARTING!!")
+  ;; clean up any global stuff here too, set the current scene if need be etc.
+  (assoc state :scenes (init-scenes-fn state)))
+
 (def game (c/game {:title "Example Clunk Game"
                    :size [1200 800]
                    :init-scenes-fn init-scenes
+                   :restart-fn restart
                    :current-scene :demo
                    :on-start-fn (fn [state]
                                   (prn "STARTING!!!!!")

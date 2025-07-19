@@ -289,6 +289,7 @@
    :on-start-fn identity
    :on-close-fn default-on-close
    :init-scenes-fn (constantly {})
+   :restart-fn identity
    :current-scene :none
    :last-frame-time 0
    :dt 0
