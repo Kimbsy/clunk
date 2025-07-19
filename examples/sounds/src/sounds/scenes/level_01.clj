@@ -45,12 +45,12 @@
   [{:keys [window] :as state}]
   [(sprite/text-sprite
     :instructions
-    (u/ratio-pos window [0.5 0.4])
+    (u/window-pos window [0.5 0.4])
     "Press <m> to restart music"
     :color white)
    (sprite/text-sprite
     :instructions
-    (u/ratio-pos window [0.5 0.6])
+    (u/window-pos window [0.5 0.6])
     "Press <s> to play sound effect"
     :color white)])
 

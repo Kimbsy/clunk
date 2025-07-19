@@ -5,48 +5,6 @@
 
 (def default-line-width 1)
 
-(defn other-points
-  "Return the points which are not in the ear starting at index `i`"
-  [i points]
-  (let [n (count points)
-        repeating (cycle points)]
-    (cond
-      (= i 0) (drop 3 points)
-      (= i (- n 1)) (drop 2 (butlast points))
-      (= i (- n 2)) (rest (drop-last 2 points))
-      (= i (- n 3)) (drop-last 3 points)
-      :else (concat (take i points)
-                    (drop (+ i 3) points)))))
-
-(defn all-ears
-  "Return all the ears of a polygon"
-  [points]
-  (keep-indexed
-   (fn [i [a b c]]
-     (when (and (u/left-turn? a b c)
-                (not (some #(u/pos-in-tri? % [a b c])
-                           (other-points i points))))
-       [i [a b c]]))
-   (->> points
-        cycle
-        (take (+ 2 (count points)))
-        (partition 3 1))))
-
-(defn triangulate
-  "Split a concave polygon with no holes or overlapping edges into a
-  collection of triangles which can be drawn."
-  [poly]
-  (loop [p poly
-         tris []]
-    (if (seq p)
-      (if-let [[i tri] (first (all-ears p))]
-        (recur (u/remove-nth (mod (inc i) (count p)) p)
-               (conj tris tri))
-        (do (prn "FOUND NO EARS????")
-            (prn p)
-            tris))
-      tris)))
-
 (defn draw-line!
   [[x1 y1] [x2 y2] [r g b a] &
    {:keys [line-width]
@@ -83,7 +41,7 @@
 (defn fill-concave-poly!
   [pos points color]
   (let [poly points]
-    (doseq [t (triangulate poly)]
+    (doseq [t (u/triangulate poly)]
       (fill-poly! pos t color))))
 
 (defn draw-rect!
@@ -107,23 +65,10 @@
   (GL11/glVertex2f x (+ y h))
   (GL11/glEnd))
 
-(defn ellipse-points
-  [[w h] &
-   {:keys [segments]
-    :or {segments 32}}]
-  (let [rx (/ w 2)
-        ry (/ h 2)
-        ;; negative dr gives us points in CCW order
-        dr (- (/ (* 2 math/PI) segments))]
-    (for [i (range segments)]
-      (let [r (* i dr)]
-        [(+ rx (* rx (math/cos r)))
-         (+ ry (* ry (math/sin r)))]))))
-
 (defn draw-ellipse!
   [pos size color & opts]
-  (draw-poly! pos (ellipse-points size) color opts))
+  (draw-poly! pos (u/ellipse-points size) color opts))
 
 (defn fill-ellipse!
   [pos size color]
-  (fill-poly! pos (ellipse-points size) color))
+  (fill-poly! pos (u/ellipse-points size) color))

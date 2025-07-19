@@ -10,7 +10,7 @@
   [pos current-animation]
   (sprite/animated-sprite :captain
                           pos
-                          [240 360]    ; <- width and height of each animation frame
+                          [240 360]
                           :captain-spritesheet
                           [1680 1440]
                           :animations {:none {:frames 1

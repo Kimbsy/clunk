@@ -3,9 +3,9 @@
             [clunk.core :as c]
             [clunk.sprite :as sprite]))
 
-(def grey [0.17254902 0.19215687 0.17254902 1])
-(def green [0.6039216 0.88235295 0.6156863 1])
-(def pink [1.0 0.45490196 0.46666667 1])
+(def grey [0.2 0.2 0.2 1])
+(def green [0.6 0.9 0.6 1])
+(def pink [1.0 0.45 0.45 1])
 
 (defn square
   "A simple sprite"

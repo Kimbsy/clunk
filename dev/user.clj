@@ -24,13 +24,13 @@
                     ;; the default size is [20 20] so we shift the
                     ;; bounding poly points by half otherwise they
                     ;; center on the top-left corner of the sprite.
-                    :points (shape/ellipse-points [60 60] :segments 8)
+                    :points (u/ellipse-points [60 60] :segments 8)
                     :size [60 60]
                     :debug? true
                     :debug-color p/white)
      (sprite/geometry-sprite :right-side-indicator
                              [window-w 300]
-                             (shape/ellipse-points [120 60] :segments 3)
+                             (u/ellipse-points [120 60] :segments 3)
                              :size [120 60]
                              :offsets [:right :center]
                              :fill? true
