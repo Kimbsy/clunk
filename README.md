@@ -31,6 +31,7 @@ To make a simple game start with the `clunk.core/game` function and run it with 
   ;; common aliases
   (:require [clunk.collision :as collision]
             [clunk.core :as c]
+            [clunk.delay :as delay]
             [clunk.input :as i]
             [clunk.palette :as p]
             [clunk.sprite :as sprite]
@@ -66,7 +67,7 @@ Define the scenes in your game as a map:
           :draw-fn draw-menu!}})
 ```
 
-Scene update functions should take the current state and return the new state. Many clunk namespaces have ready-made update functions. The `clunk.sprite` update function moves sprites based on their velocity and updates animations, the `clunk.collision` update function checks for sprite collisions and applies appropriate `on-collide` functions (see section on collisions below), the `clunk.tween` update function updates sprite tweens (see section on tweens below).
+Scene update functions should take the current state and return the new state. Many clunk namespaces have ready-made update functions. The `clunk.sprite/update-state` function moves sprites based on their velocity and updates animations, the `clunk.collision/update-state` function checks for sprite collisions and applies appropriate `on-collide` functions (see section on collisions below), the `clunk.delay/update-state` function updates any ongoing delays and exeuted ones which are finished (see secion on delays below) the `clunk.tween/update-state` function updates sprite tweens (see section on tweens below).
 
 ``` Clojure
 (defn update-demo
@@ -74,6 +75,7 @@ Scene update functions should take the current state and return the new state. M
   (-> state
       sprite/update-state
       collision/update-state
+      delay/update-state
       tween/update-state))
 ```
 
@@ -171,6 +173,7 @@ To detect collisions between sprites in your scene you must do two things.
   (-> state
       sprite/update-state
       collision/update-state  ;; <= this one
+      delay/update-state
       tween/update-state))
 
 (defn init-scenes
@@ -213,6 +216,7 @@ To use tweens in your scene you must add the `clunk.tween/update-state` function
   (-> state
       sprite/update-state
       collision/update-state
+      delay/update-state
       tween/update-state))   ;; <= this one
 ```
 
@@ -268,6 +272,8 @@ To play an audio file (currently `*.ogg` files are supported, conversion tools a
 You can play loaded files with `clunk.audio/play!` passing in the reference key you set. You can loop the audio playback by setting the optional `:loop?` keyword arg to `true`. This function additionally returns a reference to the audio source, you can call `clunk.audio/stop!` passing in this source reference to stop it early. This is a necessity when looping audio as they will not stop on their own.
 
 ## Input
+
+@TODO: add example games demonstrating different kinds of input handling.
 
 There are three ways of handling use input in clunk.
 
@@ -364,7 +370,49 @@ Generally you should avoid _overusing_ this feature since it leads to hard to de
 
 ## Delays
 
-@TODO: document delays, sequential delays
+@TODO: add an example game demonstrating delays
+
+Delays allow you to execute code after a certain amount of time has passed. This is very useful for complex animations, cutscenes, spawning enemies/items etc.
+
+To use delays in your scene you must add the `clunk.delay/update-state` function to your scene update function.
+
+``` Clojure
+(defn update-demo
+  [state]
+  (-> state
+      sprite/update-state
+      collision/update-state
+      delay/update-state      ;; <= this one
+      tween/update-state))
+```
+
+Delays can be created with the `clunk.delay/delay-fn` function, it takes a duration in milliseconds and a function which takes the current game state (when the delay finishes) and returns the new game state.
+
+``` Clojure
+(delay/delay-fn 1000 (fn [state] (spawn-enemy state)))
+```
+
+You can add these delays to your scene with the `clunk.delay/add-delay-fn` function.
+
+``` Clojure
+(delay/add-delay-fn
+ state
+ (delay/delay-fn ... )))
+```
+
+When a delay duration passes, the function is invoked. Only delays on the _current_ scene are processed, so if we switch scenes any active delays will be paused until we return.
+
+Often it's desirable to add a bunch of delays to the scene at the same time with timings that are relative to each other (very helpful for cutscenes, especially when fine-tuning the timings). You can create a list of delays with the `clunk.delay/sequential-delay-fns` function which takes a collection of `[duration function]` tuples. These can be added to the scene with the `clunk.delay/add-delay-fns` function.
+
+``` Clojure
+(delay/add-delay-fns
+ state
+ (delay/sequential-delay-fns
+  [[0 (fn [state] (player-enters state))]
+   [1000 (fn [state] (bad-guy-enters state))]
+   [100 (fn [state] (epic-fight-music state))]]
+  :initial-delay 1000))
+```
 
 ## The Game State
 
@@ -372,4 +420,4 @@ Generally you should avoid _overusing_ this feature since it leads to hard to de
 
 ## Utils
 
-The `clunk/util` and `clunk/palette` and `clunk.shape` namespaces provide a number of helper functions for positioning sprites, working with 2d vectors, creating and modifying colours, drawing simple shapes etc.
+The `clunk/util` and `clunk/palette` namespaces provide a number of helper functions for positioning sprites, working with 2d vectors, working with polygon point collections, creating and modifying colours etc.

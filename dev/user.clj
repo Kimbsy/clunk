@@ -5,14 +5,13 @@
   (:require [clunk.audio :as audio]
             [clunk.collision :as collision]
             [clunk.core :as c]
+            [clunk.delay :as delay]
             [clunk.input :as i]
             [clunk.palette :as p]
             [clunk.scene :as scene]
-            [clunk.shape :as shape]
             [clunk.sprite :as sprite]
             [clunk.tween :as tween]
-            [clunk.util :as u]
-            [clunk.delay :as delay]))
+            [clunk.util :as u]))
 
 (defn sprites
   [{:keys [window vg] :as state}]
