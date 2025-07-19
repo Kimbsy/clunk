@@ -340,7 +340,7 @@ The `clunk.input/is` function is a helpful way of pattern matching on the events
     state))
 ```
 
-#### Custom events
+### Custom events
 
 You can create your on events which will be handled in the same way using the `clunk.core/enqueue-event!` function. Your event should be a map containing an `:event-type` and any data that your handler will need. Your handlers should be registered in the scene under the `:<event-type>-fns` key.
 
