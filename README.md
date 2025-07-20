@@ -98,7 +98,7 @@ In order to use images for your sprites, you must declare them in the game confi
 
 The default `clunk.sprite/sprite` function returns a minimal sprite which draws itself as a red box. You can give it a new `:draw-fn` using keyword args to override this.
 
-The `clunk.sprite/geometry-sprite` function returns a sprite which draws a polygon shape specified by a sequence of points (`[x y]` vectors) relative to the sprite `pos`. These points should be listed in counter-clockwise (CCW) order.
+The `clunk.sprite/geometry-sprite` function returns a sprite which draws a polygon shape specified by a sequence of points (`[x y]` vectors) relative to the sprite `pos`. These points should be listed in counter-clockwise (CCW) order. It is recommended to always supply `:size` dimensions for geometry sprites to ensure alignment and offsets work correctly.
 
 The `clunk.sprite/image-sprite` function creates a sprite which draws an image. (This image must be declared as an `:asset` in the game config).
 
@@ -115,7 +115,8 @@ The `clunk.sprite/text-sprite` function creates a sprite which draws itself as t
                            [350 350]
                            [[0 0]
                             [10 0]
-                            [5 10]])
+                            [5 10]]
+                           :size [10 5])
 
    (sprite/image-sprite :health
                         [200 200]

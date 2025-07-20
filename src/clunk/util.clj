@@ -262,3 +262,28 @@
       (let [r (* i dr)]
         [(+ rx (* rx (math/cos r)))
          (+ ry (* ry (math/sin r)))]))))
+
+(defn rounded-rect-points
+  "Generate a collection of `[x y]` points in CCW order tracing a
+  rectangle with rounded corners.
+
+  The points are all in the `[+x +y]` quadrant so the
+  `clunk.sprite/pos-offsets` function works by default."
+  [[w h] &
+   {:keys [radius]
+    :or {radius 60}}]
+  ;; if the radius is larger than either dimension it all gets wonky
+  (let [radius (min w h radius)
+        circle (ellipse-points [radius radius])
+        n (count circle)
+        sector-size (inc (int (/ n 4)))
+        ;; split the circle into sectors with common edge points
+        [tr tl bl br] (partition sector-size
+                                 (dec sector-size)
+                                 (take (inc n) (cycle circle)))
+        ;; offset 3 of the sectors by the rect size (adjusting for radius)
+        br (map (partial map + [(- w radius) (- h radius)]) br)
+        bl (map (partial map + [0 (- h radius)]) bl)
+        tr (map (partial map + [(- w radius) 0]) tr)]
+    ;; reconnect the sectors
+    (concat tr tl bl br)))
