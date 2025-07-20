@@ -246,14 +246,19 @@
       tris)))
 
 (defn ellipse-points
+  "Generate a collection of `[x y]` points in CCW order around an
+  ellipse with dimensions `[w h]`.
+
+  The points are all in the `[+x +y]` quadrant so the
+  `clunk.sprite/pos-offsets` function works by default."
   [[w h] &
-   {:keys [segments]
-    :or {segments 32}}]
+   {:keys [num-points]
+    :or {num-points 32}}]
   (let [rx (/ w 2)
         ry (/ h 2)
         ;; negative dr gives us points in CCW order
-        dr (- (/ (* 2 math/PI) segments))]
-    (for [i (range segments)]
+        dr (- (/ (* 2 math/PI) num-points))]
+    (for [i (range num-points)]
       (let [r (* i dr)]
         [(+ rx (* rx (math/cos r)))
          (+ ry (* ry (math/sin r)))]))))
