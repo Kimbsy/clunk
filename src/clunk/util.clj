@@ -287,3 +287,34 @@
         tr (map (partial map + [(- w radius) 0]) tr)]
     ;; reconnect the sectors
     (concat tr tl bl br)))
+
+(defn- lerp
+  "Calculate a linear interpolation between two points where `t` is
+  between 0 and 1."
+  [[p1x p1y] [p2x p2y] t]
+  [(+ (* p1x (- 1 t)) (* p2x t))
+   (+ (* p1y (- 1 t)) (* p2y t))])
+
+(defn bezier-point
+  "Calculate a point on a Bezier curve using De Casteljau's algorithm
+  via successive lerps.
+
+  `start` and `end` are the beginning and end of the line, `c1` and
+  `c2` are the control points."
+  [start c1 c2 end t]
+  (let [t1 (lerp start c1 t)
+        t2 (lerp c1 c2 t)
+        t3 (lerp c2 end t)
+        t4 (lerp t1 t2 t)
+        t5 (lerp t2 t3 t)]
+    (lerp t4 t5 t)))
+
+(defn bezier-points
+  "Generate a collection of `[x y]` points which describe a Bezier
+  curve."
+  [start c1 c2 end &
+   {:keys [samples]
+    :or {samples 32}}]
+  (let [step (/ 1 samples)]
+    (map (partial bezier-point start c1 c2 end)
+         (range 0 (+ 1 step) step))))

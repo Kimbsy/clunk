@@ -132,8 +132,7 @@
          (reify GLFWCursorPosCallbackI
            (invoke [this win xpos ypos]
              (enqueue-event! {:event-type :mouse-movement
-                              :xpos xpos
-                              :ypos ypos}))))
+                              :pos [xpos ypos]}))))
 
         ;; when we press/release a mouse button print it
         (GLFW/glfwSetMouseButtonCallback

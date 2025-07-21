@@ -27,15 +27,7 @@
                     :size [60 60]
                     :debug? true
                     :debug-color p/white)
-     (sprite/geometry-sprite :right-side-indicator
-                             [window-w 300]
-                             (u/ellipse-points [120 60] :num-points 3)
-                             :size [120 60]
-                             :offsets [:right :center]
-                             :fill? true
-                             :color p/grey
-                             :debug? true
-                             :debug-color p/white)
+
      (sprite/image-sprite :captain-sheet
                           [100 100]
                           [1680 1440]
@@ -103,6 +95,31 @@
                        -360
                        :step-count 300
                        :repeat-times ##Inf)))
+
+     (sprite/geometry-sprite :right-side-indicator
+                             [window-w 300]
+                             (u/ellipse-points [120 60] :num-points 3)
+                             :size [120 60]
+                             :offsets [:right :center]
+                             :fill? true
+                             :color p/grey
+                             :debug? true
+                             :debug-color p/red)
+
+     (let [start [0 0]
+           c1 [(- (rand-int window-w) (/ window-w 2))
+               (- (rand-int window-h) (/ window-h 2))]
+           c2 [(+ 600 (- (rand-int window-w) (/ window-w 2)))
+               (- (rand-int window-h) (/ window-h 2))]
+           end [600 0]]
+       (sprite/geometry-sprite :bezier-curve
+                               (u/center window)
+                               (u/bezier-points start c1 c2 end)
+                               :size [600 0]
+                               :closed? false
+                               :color (p/hex->rgba "#FF9B85")
+                               :offsets [:center]
+                               :line-width 6))
 
      ;; world bounds
      (sprite/sprite :wall-y [0 -100]

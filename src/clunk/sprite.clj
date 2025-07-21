@@ -89,11 +89,16 @@
   (shape/draw-rect! [x (- y 20)] [2 40] color))
 
 (defn draw-geometry-sprite!
-  [{:keys [pos size points color fill? line-width] :as s}]
-  (let [offsets (pos-offsets s)]
-    (if fill?
-      (shape/fill-poly! (map + pos offsets) points color)
-      (shape/draw-poly! (map + pos offsets) points color :line-width line-width))))
+  [{:keys [pos size points color fill? closed? line-width] :as s}]
+  (let [offsets (pos-offsets s)
+        offset-pos (map + pos offsets)]
+    (if closed?
+      (if fill?
+        (shape/fill-poly! offset-pos points color)
+        (shape/draw-poly! offset-pos points color :line-width line-width))
+      ;; if its not a closed shape, then it's just a sequence of lines
+      (let [relative-points (map (partial map + offset-pos) points)]
+        (shape/draw-lines! (partition 2 1 relative-points) color :line-width line-width)))))
 
 (defn draw-image-sprite!
   [{:keys [pos size image-texture rotation] :as s}]
@@ -186,6 +191,7 @@
            offsets
            color
            fill?
+           closed?
            line-width
            debug?
            debug-color
@@ -202,6 +208,7 @@
           offsets [:center]
           color p/white
           fill? false
+          closed? true
           line-width 2
           debug? false
           debug-color p/red
@@ -217,6 +224,7 @@
     :bounds-fn bounds-fn
     :color color
     :fill? fill?
+    :closed? closed?
     :line-width line-width
     :debug? debug?
     :debug-color debug-color
