@@ -309,7 +309,7 @@
         t5 (lerp t2 t3 t)]
     (lerp t4 t5 t)))
 
-(defn bezier-points
+(defn bezier-curve
   "Generate a collection of `[x y]` points which describe a Bezier
   curve."
   [start c1 c2 end &

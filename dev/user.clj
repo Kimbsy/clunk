@@ -9,6 +9,7 @@
             [clunk.input :as i]
             [clunk.palette :as p]
             [clunk.scene :as scene]
+            [clunk.shape :as shape]
             [clunk.sprite :as sprite]
             [clunk.tween :as tween]
             [clunk.util :as u]))
@@ -106,21 +107,6 @@
                              :debug? true
                              :debug-color p/red)
 
-     (let [start [0 0]
-           c1 [(- (rand-int window-w) (/ window-w 2))
-               (- (rand-int window-h) (/ window-h 2))]
-           c2 [(+ 600 (- (rand-int window-w) (/ window-w 2)))
-               (- (rand-int window-h) (/ window-h 2))]
-           end [600 0]]
-       (sprite/geometry-sprite :bezier-curve
-                               (u/center window)
-                               (u/bezier-points start c1 c2 end)
-                               :size [600 0]
-                               :closed? false
-                               :color (p/hex->rgba "#FF9B85")
-                               :offsets [:center]
-                               :line-width 6))
-
      ;; world bounds
      (sprite/sprite :wall-y [0 -100]
                     :size [window-w 100]
@@ -194,9 +180,19 @@
       delay/update-state))
 
 (defn draw-demo!
-  [state]
+  [{:keys [window] :as state}]
   (c/draw-background! (p/hex->rgba "#3A435E"))
-  (sprite/draw-scene-sprites! state))
+
+  (sprite/draw-scene-sprites! state)
+
+  (let [[w h] (u/window-size window)
+        start [300 400]
+        c1 [(rand-int w) (rand-int h)]
+        c2 [(rand-int w) (rand-int h)]
+        end [900 400]]
+    (shape/draw-curve! (u/bezier-curve start c1 c2 end) (p/hex->rgba "#FF9B85")
+                       :line-width 8
+                       :foo 42)))
 
 (defn draw-other!
   [state]

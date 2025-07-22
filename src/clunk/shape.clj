@@ -30,7 +30,14 @@
 
 (defn draw-line!
   [p1 p2 color & opts]
-  (draw-lines! [[p1 p2]] color opts))
+  (apply draw-lines! [[p1 p2]] color opts))
+
+(defn draw-curve!
+  "Takes a sequence of points and connects them with lines.
+
+  See the `clunk.util/bezier-curve` function."
+  [points color & opts]
+  (apply draw-lines! (partition 2 1 points) color opts))
 
 (defn draw-poly!
   [[x y] poly [r g b a] &
@@ -69,13 +76,14 @@
 
 (defn draw-rect!
   [pos [w h] color & opts]
-  (draw-poly! pos
-              [[0 0]
-               [w 0]
-               [w h]
-               [0 h]]
-              color
-              opts))
+  (apply draw-poly!
+         pos
+         [[0 0]
+          [w 0]
+          [w h]
+          [0 h]]
+         color
+         opts))
 
 (defn fill-rect!
   [[x y] [w h] [r g b a]]
@@ -90,7 +98,7 @@
 
 (defn draw-ellipse!
   [pos size color & opts]
-  (draw-poly! pos (u/ellipse-points size) color opts))
+  (apply draw-poly! pos (u/ellipse-points size) color opts))
 
 (defn fill-ellipse!
   [pos size color]
