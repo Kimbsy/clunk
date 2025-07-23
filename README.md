@@ -334,12 +334,12 @@ This handler function must be attached to your scene by putting it in the approp
 
 You technically only need one handler for each type of event, but having multiple small ones can make control flow simpler. Event handlers are invoked in the order they are listed.
 
-The `clunk.input/is` function is a helpful way of pattern matching on the events. Mouse events will have `:button` and `:action` fields, key events will have `:key` and `:action` fields.
+The `clunk.input/is` function is a helpful way of pattern matching on the events. Mouse events will have `:button` and `:action` fields, key events will have `:key` and `:action` fields. The `:action` field defaults to `i/PRESS`.
 
 ``` Clojure
 (defn key-handler-1
   [state e]
-  (if (i/is e :key i/K_SPACE :action i/PRESS)
+  (if (i/is e :key i/K_SPACE :action i/RELEASE)
     (update state :some-useful-flag not)
     state))
 ```

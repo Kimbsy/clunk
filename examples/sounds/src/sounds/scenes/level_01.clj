@@ -13,7 +13,7 @@
   "Handle a key-pressed event `e`.
   When the key was `m` reset the music."
   [{:keys [music-source] :as state} e]
-  (if (i/is e :key i/K_M :action i/PRESS)
+  (if (i/is e :key i/K_M)
     (do
       (audio/stop! music-source)
       (assoc state :music-source
@@ -28,7 +28,7 @@
   "handle a key-pressed event `e`.
   When the key was `s` play a random sound effect."
   [state e]
-  (if (i/is e :key i/K_S :action i/PRESS)
+  (if (i/is e :key i/K_S)
     (do
       (audio/play! (rand-nth blips))
       state)

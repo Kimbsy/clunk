@@ -177,7 +177,8 @@
 (defn is
   [e &
    {:keys [action button mods]
-    k :key}]
+    k :key
+    :or {action PRESS}}]
   (and (or (nil? action)
            (= action (:action e)))
        (or (nil? button)

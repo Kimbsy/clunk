@@ -204,7 +204,7 @@
   [{:keys [restart-fn] :as state} e]
   (cond
     ;; when we press space, transition to another scene
-    (i/is e :key i/K_SPACE :action i/PRESS)
+    (i/is e :key i/K_SPACE)
     (scene/transition
      state
      ((:current-scene state) {:other :demo
@@ -212,7 +212,7 @@
      :transition-length 60)
 
     ;; when we press r, reset the game
-    (i/is e :key i/K_R :action i/PRESS)
+    (i/is e :key i/K_R)
     (restart-fn state)
 
     :else state))
@@ -221,7 +221,7 @@
   [state e]
   ;;  (prn "kp2" e)
   ;; if we pres enter, enqueue a custom event
-  (when (i/is e :key i/K_ENTER :action i/PRESS)
+  (when (i/is e :key i/K_ENTER)
     (c/enqueue-event! {:event-type :other-event
                        :data {:a 1 :b 2}}))
   state)

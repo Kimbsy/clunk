@@ -92,7 +92,7 @@
 
 (defn restart
   [{:keys [window] :as state} e]
-  (if (i/is e :key i/K_R :action i/PRESS)
+  (if (i/is e :key i/K_R)
     (sprite/update-sprites
      state
      (sprite/has-group :ball)
