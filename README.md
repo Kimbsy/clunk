@@ -67,7 +67,7 @@ Define the scenes in your game as a map:
           :draw-fn draw-menu!}})
 ```
 
-Scene update functions should take the current state and return the new state. Many clunk namespaces have ready-made update functions. The `clunk.sprite/update-state` function moves sprites based on their velocity and updates animations, the `clunk.collision/update-state` function checks for sprite collisions and applies appropriate `on-collide` functions (see section on collisions below), the `clunk.delay/update-state` function updates any ongoing delays and exeuted ones which are finished (see secion on delays below) the `clunk.tween/update-state` function updates sprite tweens (see section on tweens below).
+Scene update functions should take the current state and return the new state. Many clunk namespaces have ready-made update functions. The `clunk.sprite/update-state` function moves sprites based on their velocity and updates animations, the `clunk.collision/update-state` function checks for sprite collisions and applies appropriate `on-collide` functions (see section on [collisions](#collisions) below), the `clunk.delay/update-state` function updates any ongoing delays and exeuted ones which are finished (see secion on [delays](#delays) below) the `clunk.tween/update-state` function updates sprite tweens (see section on [tweens](#tweens) below).
 
 ``` Clojure
 (defn update-demo
@@ -204,7 +204,7 @@ The two collide-fn functions take both sprites as arguments, and should return t
 ```
 
 > [!TIP]
-> If you need to affect the game state in a collide-fn function, you can emit a custom event and register an event handler (see section on Custom Events below).
+> If you need to affect the game state in a collide-fn function, you can emit a custom event and register an event handler (see section on [Custom events](#custom-events) below).
 
 The default collision detection function check if the `width x height` rectangles of the sprites overlap, this is fast and often good enough, but sometimes you need something more accurate. You can specify the collision detection function with the `:collision-detection-fn` keyword arg. These functions take the group-a sprite and group-b sprite and return a boolean. The `clunk.collision` namespace has many built-in collision detection functions and helpers, if you want to write a custom collision detection function you may find them a useful starting point.
 
@@ -424,4 +424,4 @@ Often it's desirable to add a bunch of delays to the scene at the same time with
 
 ## Utils
 
-The `clunk/util` and `clunk/palette` namespaces provide a number of helper functions for positioning sprites, working with 2d vectors, working with polygon point collections, creating and modifying colours etc.
+The `clunk/util`, `clunk.shape` and `clunk/palette` namespaces provide a number of helper functions for positioning sprites, working with 2d vectors, working with polygon point collections, drawing primitive shapes, and creating and modifying colours.
