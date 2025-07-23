@@ -5,6 +5,7 @@ on:
     paths:
       - '**'
       - '!examples/**'
+      - '!README.md'
     branches:
       - main
 
