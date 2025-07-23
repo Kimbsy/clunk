@@ -203,7 +203,10 @@ The two collide-fn functions take both sprites as arguments, and should return t
       nil))])
 ```
 
-@TODO: document specifying collision detection functions
+> [!TIP]
+> If you need to affect the game state in a collide-fn function, you can emit a custom event and register an event handler (see section on Custom Events below).
+
+The default collision detection function check if the `width x height` rectangles of the sprites overlap, this is fast and often good enough, but sometimes you need something more accurate. You can specify the collision detection function with the `:collision-detection-fn` keyword arg. These functions take the group-a sprite and group-b sprite and return a boolean. The `clunk.collision` namespace has many built-in collision detection functions and helpers, if you want to write a custom collision detection function you may find them a useful starting point.
 
 ## Tweens
 
