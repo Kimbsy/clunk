@@ -418,10 +418,6 @@ Often it's desirable to add a bunch of delays to the scene at the same time with
   :initial-delay 1000))
 ```
 
-## The Game State
-
-@TODO: document what fields exist and what they're for.
-
 ## Utils
 
 The `clunk/util`, `clunk.shape` and `clunk/palette` namespaces provide a number of helper functions for positioning sprites, working with 2d vectors, working with polygon point collections, drawing primitive shapes, and creating and modifying colours.
