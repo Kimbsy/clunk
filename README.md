@@ -374,7 +374,7 @@ Generally you should avoid _overusing_ this feature since it leads to hard to de
 
 ## Delays
 
-@TODO: add an example game demonstrating delays
+Take a look at the [delays](/examples/delays) example game.
 
 Delays allow you to execute code after a certain amount of time has passed. This is very useful for complex animations, cutscenes, spawning enemies/items etc.
 
