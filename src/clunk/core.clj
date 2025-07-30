@@ -194,13 +194,14 @@
         (let [vg (NanoVGGL3/nvgCreate (bit-or NanoVGGL3/NVG_ANTIALIAS
                                               NanoVGGL3/NVG_STENCIL_STROKES))
               ;; load a font
-              font (create-font-mem vg "UbuntuMono-Regular" "font/UbuntuMono-Regular.ttf")
+              font-name "UbuntuMono-Regular"
+              font (create-font-mem vg font-name "font/UbuntuMono-Regular.ttf")
               ;; @TODO: register other default fonts?
               ;; stick them in the state
               state (-> state
                         (assoc :vg vg)
                         (assoc :vg-color (NVGColor/create))
-                        (assoc :default-font font))]
+                        (assoc :default-font font-name))]
 
           ;; enable transprency for drawing images
           (GL11/glEnable GL11/GL_BLEND)

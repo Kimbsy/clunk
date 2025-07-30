@@ -2,12 +2,11 @@ name: Deploy on main
 
 on:
   push:
-    paths:
-      - '**'
-      - '!examples/**'
-      - '!README.md'
     branches:
       - main
+    paths-ignore:
+      - 'examples/**'
+      - 'README.md'
 
 jobs:
   test:

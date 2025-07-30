@@ -3,6 +3,7 @@
             [clunk.image :as image]
             [clunk.palette :as p]
             [clunk.shape :as shape]
+            [clunk.text :as text]
             [clunk.util :as u])
   (:import (org.lwjgl.nanovg NanoVG)
            (org.lwjgl.opengl GL11
@@ -145,6 +146,7 @@
            points
            bounds-fn
            offsets
+           draw-requires-state?
            debug?
            debug-color
            extra]
@@ -154,6 +156,7 @@
          update-fn update-pos
          draw-fn draw-default-sprite!
          offsets [:center]
+         draw-requires-state? false
          debug? false
          debug-color p/red
          extra {}}}]
@@ -171,6 +174,7 @@
                    (if (seq points)
                      :points
                      default-bounding-poly))
+    :draw-requires-state? draw-requires-state?
     :debug? debug?
     :debug-color debug-color
     :offsets offsets}
@@ -312,29 +316,10 @@
     :debug-color debug-color}
    extra))
 
-(defn capture-gl-state
-  "Capture the current blending state of GL so we can draw NanoVG
-  text (which blats the config) before restoring the original state
-  for drawing images/shapes."
-  []
-  {:src-rgb (GL11/glGetInteger GL30/GL_BLEND_SRC_RGB)
-   :src-alpha (GL11/glGetInteger GL30/GL_BLEND_SRC_ALPHA)
-   :dst-rgb (GL11/glGetInteger GL14/GL_BLEND_DST_RGB)
-   :dst-alpha (GL11/glGetInteger GL11/GL_DST_ALPHA)
-   :blend-enabled? (GL11/glIsEnabled GL11/GL_BLEND)})
-
-(defn restore-gl-state
-  "Restore the original blending state of GL for drawing images/shapes."
-  [{:keys [src-rgb src-alpha dst-rgb dst-alpha blend-enabled?]}]
-  (if blend-enabled?
-    (GL11/glEnable GL11/GL_BLEND)
-    (GL11/glDisable GL11/GL_BLEND))
-  (GL30/glBlendFuncSeparate src-rgb dst-rgb src-alpha dst-alpha))
-
 (defn draw-text-sprite!
   [{:keys [window vg vg-color default-font] :as state}
    {:keys [content font font-size color rotation]
-    [x0 y0 :as pos] :pos
+    [x y] :pos
     [w h] :size
     :as s}]
   (let [[off-x _] (pos-offsets s)
@@ -346,27 +331,14 @@
                 (= :bottom off) 0
                 (#{:center :centre} off) (/ h 2)
                 :else (/ h 2))
-        [x y] [(+ x0 off-x) (+ y0 off-y)]
-        [r g b a] (map float color)
-        a (or a (float 1)) ;; default alpha
-        font (or font default-font)
-        [window-w window-h] (u/window-size window)
-        old-state (capture-gl-state)]
-    (NanoVG/nvgBeginFrame vg window-w window-h 1)
-    (NanoVG/nvgFontSize vg font-size)
-    (NanoVG/nvgFontFace vg font)
-    (NanoVG/nvgFillColor vg (NanoVG/nvgRGBAf r g b a vg-color))
-
-    (NanoVG/nvgSave vg)
-    (NanoVG/nvgTranslate vg (float x) (float y))
-    (when (and rotation
-               (not (zero? (mod rotation 360))))
-      (NanoVG/nvgRotate vg (math/to-radians rotation)))
-    (NanoVG/nvgText vg (float 0) (float 0) content)
-    (NanoVG/nvgRestore vg)
-
-    (NanoVG/nvgEndFrame vg)
-    (restore-gl-state old-state)))
+        pos [(+ x off-x) (+ y off-y)]]
+    (text/draw-text! state
+                     pos
+                     content
+                     :font font
+                     :font-size font-size
+                     :color color
+                     :rotation rotation)))
 
 (defn text-sprite
   [sprite-group pos content &
