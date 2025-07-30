@@ -1,14 +1,8 @@
 (ns clunk.sprite
-  (:require [clojure.math :as math]
-            [clunk.image :as image]
+  (:require [clunk.image :as image]
             [clunk.palette :as p]
             [clunk.shape :as shape]
-            [clunk.text :as text]
-            [clunk.util :as u])
-  (:import (org.lwjgl.nanovg NanoVG)
-           (org.lwjgl.opengl GL11
-                             GL14
-                             GL30)))
+            [clunk.text :as text]))
 
 (defn default-bounding-poly
   "Generates a bounding polygon based on the `:size` rectangle of a

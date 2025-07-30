@@ -2,8 +2,7 @@
   (:require [clunk.core :as c]
             [clunk.shape :as shape]
             [clunk.util :as u])
-  (:import (org.lwjgl.glfw GLFW)
-           (org.lwjgl.opengl GL11)))
+  (:import (org.lwjgl.glfw GLFW)))
 
 (defn fade-to-black
   [{:keys [window current-scene scenes] :as state}

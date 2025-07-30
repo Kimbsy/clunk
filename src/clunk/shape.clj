@@ -9,8 +9,7 @@
   relative to the `pos`.
 
   Colors are `[r g b a]` vectors."
-  (:require [clojure.math :as math]
-            [clunk.util :as u])
+  (:require [clunk.util :as u])
   (:import (org.lwjgl.opengl GL11)))
 
 (def default-line-width 1)

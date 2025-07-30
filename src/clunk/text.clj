@@ -1,11 +1,27 @@
 (ns clunk.text
-  (:require [clojure.math :as math]
+  (:require [clojure.java.io :as io]
+            [clojure.math :as math]
             [clunk.palette :as p]
             [clunk.util :as u])
-  (:import (org.lwjgl.nanovg NanoVG)
+  (:import (org.lwjgl BufferUtils)
+           (org.lwjgl.nanovg NanoVG)
            (org.lwjgl.opengl GL11
                              GL14
                              GL30)))
+
+(defn create-font
+  "Load a .ttf from a classpath resource and register it as `name` in
+  the NanoVG context `vg`."
+  [vg name classpath-resource]
+  (with-open [is (io/input-stream (io/resource classpath-resource))]
+    ;; read all bytes
+    (let [ba (byte-array (.available is))]
+      (.read is ba)
+      ;; wrap into a direct ByteBuffer
+      (let [buf (doto (BufferUtils/createByteBuffer (alength ba))
+                  (.put ba)
+                  (.flip))]
+        (NanoVG/nvgCreateFontMem vg name buf false)))))
 
 (defn capture-gl-state
   "Capture the current blending state of GL so we can draw NanoVG
