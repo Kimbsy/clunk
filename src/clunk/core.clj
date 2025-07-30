@@ -118,12 +118,7 @@
                               :k k
                               :scancode scancode
                               :action action
-                              :mods mods})
-             ;; quit on ESC
-             (when (and (= k GLFW/GLFW_KEY_ESCAPE)
-                        (= action GLFW/GLFW_RELEASE))
-               ;; we will detect this in the window loop
-               (GLFW/glfwSetWindowShouldClose window true)))))
+                              :mods mods}))))
 
         ;; when the mouse moves in the window set the position of the
         ;; example sprite to the cursor
@@ -366,7 +361,7 @@
              main-loop
              :initk state
              ;; run the rendering loop until the user has attempted to
-             ;; close the window or has pressed the ESC key.
+             ;; close the window or has called `clunk.core/quit!`
              :somef (fn [{:keys [window]}]
                       (not (GLFW/glfwWindowShouldClose window)))))
            (catch Exception e
