@@ -109,28 +109,29 @@ The `clunk.sprite/text-sprite` function creates a sprite which draws itself as t
 ``` Clojure
 (defn demo-sprites
   [state]
-  [(sprite/sprite :player [100 100])
+  [(sprite/sprite :player      ; sprite group, used for collision detection and other things
+                  [100 100])   ; `[x y]` position
 
    (sprite/geometry-sprite :poly
-                           [350 350]
-                           [[0 0]
+                           [350 350]       ; position
+                           [[0 0]          ; `[x y]` shape vertices relative to position
                             [10 0]
                             [5 10]]
-                           :size [10 5])
+                           :size [10 5])   ; if unspecified size will be calculated from the vertices
 
    (sprite/image-sprite :health
-                        [200 200]
-                        [32 32]
-                        :heart)
+                        [200 200]     ; position
+                        [32 32]       ; image size
+                        :heart)       ; image asset key (specified in call to `clunk.core/game`)
 
    (sprite/animated-sprite :captain
-                           [300 300]
-                           [240 360]
-                           :captain-spritesheet
-                           [1680 1440]
-                           :animations {:none {:frames 1
-                                               :y-offset 0
-                                               :frame-delay 100}
+                           [300 300]               ; position
+                           [240 360]               ; sprite image size
+                           :captain-spritesheet    ; image asset key
+                           [1680 1440]             ; full spritesheet size
+                           :animations {:none {:frames 1            ; number of frames in animation
+                                               :y-offset 0          ; y-position in sprite sheet
+                                               :frame-delay 100}    ; how many game frames before advancing animation frame
                                         :idle {:frames 4
                                                :y-offset 1
                                                :frame-delay 15}
@@ -140,11 +141,11 @@ The `clunk.sprite/text-sprite` function creates a sprite which draws itself as t
                                         :jump {:frames 7
                                                :y-offset 3
                                                :frame-delay 8}}
-                           :current-animation :none)
+                           :current-animation :none)            ; initial sprite animation
 
    (sprite/text-sprite :title-text
-                       [200 50]
-                       "Press enter to play!")])
+                       [200 50]                     ; position
+                       "Press enter to play!")])    ; content
 ```
 
 Each sprite has a `:debug?` field which, if `true`, will draw the collision-detection boundary for the sprite as well as its precise position.
