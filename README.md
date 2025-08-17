@@ -67,7 +67,7 @@ Define the scenes in your game as a map:
           :draw-fn draw-menu!}})
 ```
 
-Scene update functions should take the current state and return the new state. Many clunk namespaces have ready-made update functions. The `clunk.sprite/update-state` function moves sprites based on their velocity and updates animations, the `clunk.collision/update-state` function checks for sprite collisions and applies appropriate `on-collide` functions (see section on [collisions](#collisions) below), the `clunk.delay/update-state` function updates any ongoing delays and exeuted ones which are finished (see secion on [delays](#delays) below) the `clunk.tween/update-state` function updates sprite tweens (see section on [tweens](#tweens) below).
+Scene update functions should take the current state and return the new state. Many clunk namespaces have ready-made update functions. The `clunk.sprite/update-state` function moves sprites based on their velocity and updates animations, the `clunk.collision/update-state` function checks for sprite collisions and applies appropriate `on-collide` functions (see section on [collisions](#collisions) below), the `clunk.delay/update-state` function updates any ongoing delays and handles ones which are finished (see secion on [delays](#delays) below) the `clunk.tween/update-state` function updates sprite tweens (see section on [tweens](#tweens) below).
 
 ``` Clojure
 (defn update-demo
@@ -92,7 +92,7 @@ Scene draw functions take the current game state and should draw it to the scree
 
 Take a look at the [basic-sprite](/examples/basic-sprite) example game.
 
-A sprite has a position, a velocity and a number of other fields for managing collision detection and animation as appropriate. Each built-in sprite function takes at least the `:sprite-group` (any keyword) and an `[x y]` position vector.
+A sprite has a position, a velocity and a number of other fields for managing collision detection and animation as appropriate. Each built-in sprite creation function takes at least the `:sprite-group` (any keyword) and an `[x y]` position vector.
 
 In order to use images for your sprites, you must declare them in the game config `:assets` in the `:image` map. You can refer to them by the key they are associated with.
 
@@ -225,7 +225,7 @@ To use tweens in your scene you must add the `clunk.tween/update-state` function
       tween/update-state))   ;; <= this one
 ```
 
-Tweens are an incredibly flexible tool. They allow you to modify an attribute of a sprite by a some amount, over an optionally defined duration (`:step-count`, the number of frames over which the change will occur), following a specific progress curve (`:easing-fn`, a large number of built-in easing functions are provided in the `clunk.tween` namespace).
+Tweens are an incredibly flexible tool. They allow you to modify an attribute of a sprite by an amount, over a duration (specified by `:step-count`, the number of frames over which the change will occur), following a specific progress curve (`:easing-fn`, a large number of built-in easing functions are provided in the `clunk.tween` namespace).
 
 This change can then be performed in reverse (by setting `:yoyo?` to `true`), and the whole process can be repeated any number of times (set `:repeat-times` to `##Inf` for continuous looping).
 
@@ -265,7 +265,6 @@ You can create a tween with `clunk.tween/tween` and attach it to a sprite with `
                   :yoyo? true
                   :yoyo-update-fn tween/tween-y-yoyo-fn
                   :repeat-times ##Inf)))
-
 ```
 
 ## Audio
@@ -274,7 +273,10 @@ Take a look at the [sounds](/examples/sounds) example game.
 
 To play an audio file (currently `*.ogg` files are supported, conversion tools are widely available), you must declare it in the game config `:assets` in the `:audio` map. This ensures the file is loaded before the game starts and can be played using the key it is associated with.
 
-You can play loaded files with `clunk.audio/play!` passing in the reference key you set. You can loop the audio playback by setting the optional `:loop?` keyword arg to `true`. This function additionally returns a reference to the audio source, you can call `clunk.audio/stop!` passing in this source reference to stop it early. This is a necessity when looping audio as they will not stop on their own.
+You can play loaded files with `clunk.audio/play!` passing in the reference key you set. You can loop the audio playback by setting the optional `:loop?` keyword arg to `true`. This function additionally returns a reference to the audio source, you can call `clunk.audio/stop!` passing in this source reference to stop it early.
+
+> [!IMPORTANT]
+> If you loop an audio file (like a music track) you should capture a reference to the source returned by the call to `clunk.audio/play!` this will let you stop it and play something else later.
 
 ## Input
 
