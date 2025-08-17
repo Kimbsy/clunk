@@ -96,7 +96,7 @@ A sprite has a position, a velocity and a number of other fields for managing co
 
 In order to use images for your sprites, you must declare them in the game config `:assets` in the `:image` map. You can refer to them by the key they are associated with.
 
-The default `clunk.sprite/sprite` function returns a minimal sprite which draws itself as a red box. You can give it a new `:draw-fn` using keyword args to override this.
+The default `clunk.sprite/sprite` function returns a minimal sprite which draws itself as a white box. You can give it a new `:draw-fn` using keyword args to override this.
 
 The `clunk.sprite/geometry-sprite` function returns a sprite which draws a polygon shape specified by a sequence of points (`[x y]` vectors) relative to the sprite `pos`. These points should be listed in counter-clockwise (CCW) order. It is recommended to supply `:size` dimensions for geometry sprites to ensure alignment and offsets work correctly.
 
