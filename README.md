@@ -296,7 +296,7 @@ The game state maintains the set of currently held keys in the `:held-keys` fiel
 
 ### Clickable sprites
 
-You can make a sprite clickable with the `clunk.input/add-on-click` function which takes a sprite and a on-click function, this function takes the state and the sprite and returns an updated state.
+You can make a sprite clickable with the `clunk.input/add-on-click` function which takes a sprite and an on-click function, this on-click function takes the state and the sprite and returns an updated state.
 
 ``` Clojure
 (-> (sprite/image-sprite :balloon
@@ -304,8 +304,8 @@ You can make a sprite clickable with the `clunk.input/add-on-click` function whi
                          [32 32]
                          :balloon)
     (i/add-on-click (fn [state s]
-                      (pop-balloon state s)  ;; @TODO: implement me!
-                      state)))
+                      (prn "POP!")
+                      (remove-balloon state s))))  ;; @TODO: implement me!
 ```
 
 ### Event handlers
@@ -349,7 +349,7 @@ The `clunk.input/is` function is a helpful way of pattern matching on the events
 
 ### Custom events
 
-You can create your on events which will be handled in the same way using the `clunk.core/enqueue-event!` function. Your event should be a map containing an `:event-type` and any data that your handler will need. Your handlers should be registered in the scene under the `:<event-type>-fns` key.
+You can create your own events which will be handled in the same way using the `clunk.core/enqueue-event!` function. Your event should be a map containing an `:event-type` and any data that your handler will need. Your handlers should be registered in the scene under the `:<event-type>-fns` key.
 
 ``` Clojure
 ;; Anywhere in your game code
@@ -373,7 +373,8 @@ You can create your on events which will be handled in the same way using the `c
 
 This can be handy as a bit of an impure escape hatch since your handler (when processed, normally on the next frame) is passed the whole game state and can modify anything it likes.
 
-Generally you should avoid _overusing_ this feature since it leads to hard to debug code.
+> [!CAUTION]
+> Generally you should avoid _overusing_ this feature since it leads to hard to debug code.
 
 ## Delays
 
