@@ -1,0 +1,47 @@
+name: macOS LWJGL test
+
+on:
+  push:
+    branches:
+      - "**"
+  workflow_dispatch: {}
+
+jobs:
+  run-on-mac:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+
+      - name: Install clojure tools
+        uses: DeLaGuardo/setup-clojure@13.4
+        with:
+          lein: 'latest'
+
+      - name: Cache Maven local repo
+        uses: actions/cache@v3
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-m2-${{ hashFiles('**/project.clj') }}
+          restore-keys: |
+            ${{ runner.os }}-m2-
+
+      - name: Run jar on macOS
+        run: |
+          java -XstartOnFirstThread -jar basic-sprite-0.1.0-standalone.jar > run.log 2>&1 || true
+          system_profiler SPDisplaysDataType > sysinfo.txt
+          head -n 200 run.log || true
+
+      - name: Upload logs
+        uses: actions/upload-artifact@v4
+        with:
+          name: mac-run-logs
+          path: |
+            run.log
+            sysinfo.txt
