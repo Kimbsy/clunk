@@ -24,7 +24,6 @@
   ;; optional, the current window hints are already the default
   (GLFW/glfwDefaultWindowHints)
 
-  ;; @TODO: testing
   ;; the window will stay hidden after creation
   (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
   ;; the window will be resizable
@@ -47,6 +46,15 @@
     ;; creates the GLCapabilities instance and makes the OpenGL bindings
     ;; available for use
     (GL/createCapabilities)
+
+    ;; @TODO: testing
+    (GL11/glMatrixMode GL11/GL_PROJECTION)
+    (GL11/glLoadIdentity)
+    ;; left, right, top, bottom in pixel units
+    (GL11/glOrtho 0 800 600 0 -1 1)
+    ;; go back to model view
+    (GL11/glMatrixMode GL11/GL_MODELVIEW)
+    (GL11/glLoadIdentity)
 
     ;; enable transparency
     (GL11/glEnable GL11/GL_BLEND)
