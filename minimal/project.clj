@@ -36,4 +36,5 @@
                  [org.lwjgl/lwjgl-stb "3.3.6" :classifier "natives-windows"]
                  [org.lwjgl/lwjgl-nanovg "3.3.6" :classifier "natives-windows"]]
   :main ^:skip-aot minimal.core
+  :jvm-opts ["-XstartOnFirstThread"]
   :target-path "target/%s")
