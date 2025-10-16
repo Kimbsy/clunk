@@ -81,6 +81,16 @@
   ;; optional, the current window hints are already the default
   (GLFW/glfwDefaultWindowHints)
 
+
+  ;; @TODO: testing mac requirements for nanovg
+  ;; request OpenGL 3.2 core profile
+  (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MAJOR 3)
+  (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MINOR 2)
+  (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_PROFILE GLFW/GLFW_OPENGL_CORE_PROFILE)
+  ;; required on macOS
+  (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_FORWARD_COMPAT GLFW/GLFW_TRUE)
+
+
   ;; the window will stay hidden after creation
   (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
   ;; the window will be resizable
@@ -104,14 +114,14 @@
     ;; available for use
     (GL/createCapabilities)
 
-    ;; reset orthographic projection
-    (GL11/glMatrixMode GL11/GL_PROJECTION)
-    (GL11/glLoadIdentity)
-    ;; left, right, top, bottom in pixel units
-    (GL11/glOrtho 0 800 600 0 -1 1)
-    ;; go back to model view
-    (GL11/glMatrixMode GL11/GL_MODELVIEW)
-    (GL11/glLoadIdentity)
+    ;; ;; reset orthographic projection
+    ;; (GL11/glMatrixMode GL11/GL_PROJECTION)
+    ;; (GL11/glLoadIdentity)
+    ;; ;; left, right, top, bottom in pixel units
+    ;; (GL11/glOrtho 0 800 600 0 -1 1)
+    ;; ;; go back to model view
+    ;; (GL11/glMatrixMode GL11/GL_MODELVIEW)
+    ;; (GL11/glLoadIdentity)
 
     ;; @TODO: testing text
     ;; create NanoVG context
