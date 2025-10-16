@@ -1,17 +1,74 @@
 (ns minimal.core
-  (:import (org.lwjgl.glfw Callbacks
+  (:require [clojure.java.io :as io])
+  (:import (org.lwjgl BufferUtils)
+           (org.lwjgl.glfw Callbacks
                            GLFW
                            GLFWCursorPosCallbackI
                            GLFWErrorCallback
                            GLFWFramebufferSizeCallbackI
                            GLFWKeyCallbackI
                            GLFWMouseButtonCallbackI)
-           (org.lwjgl.nanovg NanoVGGL3
+           (org.lwjgl.nanovg NanoVG
+                             NanoVGGL3
                              NVGColor)
            (org.lwjgl.opengl GL
                              GL11
+                             GL14
                              GL30)
            (org.lwjgl.system MemoryStack)))
+
+(defn capture-gl-state
+  "Capture the current blending state of GL so we can draw NanoVG
+  text (which blats the config) before restoring the original state
+  for drawing images/shapes."
+  []
+  {:src-rgb (GL11/glGetInteger GL30/GL_BLEND_SRC_RGB)
+   :src-alpha (GL11/glGetInteger GL30/GL_BLEND_SRC_ALPHA)
+   :dst-rgb (GL11/glGetInteger GL14/GL_BLEND_DST_RGB)
+   :dst-alpha (GL11/glGetInteger GL11/GL_DST_ALPHA)
+   :blend-enabled? (GL11/glIsEnabled GL11/GL_BLEND)})
+
+(defn restore-gl-state
+  "Restore the original blending state of GL for drawing images/shapes."
+  [{:keys [src-rgb src-alpha dst-rgb dst-alpha blend-enabled?]}]
+  (if blend-enabled?
+    (GL11/glEnable GL11/GL_BLEND)
+    (GL11/glDisable GL11/GL_BLEND))
+  (GL30/glBlendFuncSeparate src-rgb dst-rgb src-alpha dst-alpha))
+
+(defn draw-text!
+  [vg content font vg-color]
+  (let [[r g b a] (map float [1 1 1 1])
+        [window-w window-h] [800 600]
+        old-state (capture-gl-state)]
+    (NanoVG/nvgBeginFrame vg window-w window-h 1)
+    (NanoVG/nvgFontSize vg 32)
+    (NanoVG/nvgFontFace vg font)
+    (NanoVG/nvgFillColor vg (NanoVG/nvgRGBAf r g b a vg-color))
+
+    (NanoVG/nvgSave vg)
+    (NanoVG/nvgTranslate vg (float 100) (float 300))
+    (NanoVG/nvgText vg (float 0) (float 0) content)
+    (NanoVG/nvgRestore vg)
+
+    (NanoVG/nvgEndFrame vg)
+    (restore-gl-state old-state)))
+
+(defn create-font
+  "Load a .ttf from a classpath resource and register it as `name` in
+  the NanoVG context `vg`."
+  [vg name path]
+  (prn path)
+  (prn (io/resource path))
+  (with-open [is (io/input-stream (io/resource path))]
+    ;; read all bytes
+    (let [ba (byte-array (.available is))]
+      (.read is ba)
+      ;; wrap into a direct ByteBuffer
+      (let [buf (doto (BufferUtils/createByteBuffer (alength ba))
+                  (.put ba)
+                  (.flip))]
+        (NanoVG/nvgCreateFontMem vg name buf false)))))
 
 (defn -main
   []
@@ -47,7 +104,7 @@
     ;; available for use
     (GL/createCapabilities)
 
-    ;; @TODO: testing
+    ;; reset orthographic projection
     (GL11/glMatrixMode GL11/GL_PROJECTION)
     (GL11/glLoadIdentity)
     ;; left, right, top, bottom in pixel units
@@ -56,24 +113,36 @@
     (GL11/glMatrixMode GL11/GL_MODELVIEW)
     (GL11/glLoadIdentity)
 
-    ;; enable transparency
-    (GL11/glEnable GL11/GL_BLEND)
-    (GL30/glBlendFuncSeparate GL11/GL_SRC_ALPHA GL11/GL_ONE_MINUS_SRC_ALPHA GL11/GL_ONE GL11/GL_ONE_MINUS_SRC_ALPHA)
-       
-    ;; loop
-    (while (not (GLFW/glfwWindowShouldClose window))
+    ;; @TODO: testing text
+    ;; create NanoVG context
+    (let [vg (NanoVGGL3/nvgCreate (bit-or NanoVGGL3/NVG_ANTIALIAS
+                                          NanoVGGL3/NVG_STENCIL_STROKES))
+          ;; load a font
+          font-name "UbuntuMono-Regular"
+          font (create-font vg font-name "font/UbuntuMono-Regular.ttf")
+          vg-color (NVGColor/create)]
 
-      ;; poll for events
-      (GLFW/glfwPollEvents)
+      ;; enable transparency
+      (GL11/glEnable GL11/GL_BLEND)
+      (GL30/glBlendFuncSeparate GL11/GL_SRC_ALPHA GL11/GL_ONE_MINUS_SRC_ALPHA GL11/GL_ONE GL11/GL_ONE_MINUS_SRC_ALPHA)
+      
+      ;; loop
+      (while (not (GLFW/glfwWindowShouldClose window))
 
-      ;; draw background
-      ;; set the clear colour
-      (GL11/glClearColor 1.0 0.6 0.5 1)
-      ;; clear the frameBuffer
-      (GL11/glClear (bit-or GL11/GL_COLOR_BUFFER_BIT GL11/GL_DEPTH_BUFFER_BIT))
+        ;; poll for events
+        (GLFW/glfwPollEvents)
 
-      ;; swap buffers
-      (GLFW/glfwSwapBuffers window))
+        ;; draw background
+        ;; set the clear colour
+        (GL11/glClearColor 1.0 0.6 0.5 1)
+        ;; clear the frameBuffer
+        (GL11/glClear (bit-or GL11/GL_COLOR_BUFFER_BIT GL11/GL_DEPTH_BUFFER_BIT))
+
+        ;; @TODO: testing draw text
+        (draw-text! vg "Drawing text seems to work" font-name vg-color)
+
+        ;; swap buffers
+        (GLFW/glfwSwapBuffers window)))
 
     ;; free window callbacks and destroy the window
     (Callbacks/glfwFreeCallbacks window)
