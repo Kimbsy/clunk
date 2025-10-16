@@ -24,6 +24,12 @@
   ;; optional, the current window hints are already the default
   (GLFW/glfwDefaultWindowHints)
 
+  ;; @TODO: testing
+  ;; the window will stay hidden after creation
+  (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
+  ;; the window will be resizable
+  (GLFW/glfwWindowHint GLFW/GLFW_RESIZABLE GLFW/GLFW_TRUE)
+
   (let [window (GLFW/glfwCreateWindow 800 600 "Hello, World!" 0 0)]
     (when (zero? window)
       (throw (IllegalStateException. "Unable to create the GLFW window")))
