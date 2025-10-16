@@ -69,11 +69,6 @@
   ;; the window will be resizable
   (GLFW/glfwWindowHint GLFW/GLFW_RESIZABLE GLFW/GLFW_TRUE)
 
-  (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MAJOR 3)
-  (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MINOR 3)
-  (GLFW/glfwWindowHint GLFW/GLFW_SAMPLES 0)
-  (GLFW/glfwWindowHint GLFW/GLFW_STEREO GLFW/GLFW_FALSE)
-
   ;; create the window and store it in the state
   (let [window (GLFW/glfwCreateWindow initial-window-width initial-window-height "Hello, World!" 0 0)]
     (if (zero? window)
