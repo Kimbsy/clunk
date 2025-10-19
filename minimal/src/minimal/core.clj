@@ -55,7 +55,9 @@
     (GL/createCapabilities)
 
     ;; setting up primitive drawing
-    (let [vertex-size 3 ;; x,y,z (even though z will always be 0)
+    (let [position-size 3
+          color-size 3
+          vertex-size 6 ;; x,y,z,r,g,b
           ;; a Vertex Buffer Object (VBO) for holding the vertex data
           vbo (GL15/glGenBuffers)
           ;; a Vertex Array Object (VAO) for holding the attributes for the vbo
@@ -64,10 +66,15 @@
           ebo (GL15/glGenBuffers)
 
           ;; define a rectangle using 4 vertices and 2 triangles
-          vertices (float-array [ 0.5  0.5 0   ;; top right
-                                  0.5 -0.5 0   ;; bottom right
-                                 -0.5 -0.5 0   ;; bottom left
-                                 -0.5  0.5 0]) ;; top left
+          vertices (float-array [;; top right
+                                 0.5 0.5 0    0 1 0
+                                 ;; bottom right
+                                 0.5 -0.5 0   1 0 0
+                                 ;; bottom left
+                                 -0.5 -0.5 0  0 1 0
+                                 ;; top left
+                                 -0.5 0.5 0   0 0 1
+                                 ])
           indices (int-array [0 1 3    ;; first tri
                               1 2 3])] ;; second tri
 
@@ -78,19 +85,28 @@
       (GL15/glBindBuffer GL15/GL_ARRAY_BUFFER vbo)
       (GL15/glBufferData GL15/GL_ARRAY_BUFFER vertices GL15/GL_STATIC_DRAW)
 
-      ;; put the index aray in an element buffer for opengl to use
+      ;; put the index array in the ebo for opengl to use
       (GL15/glBindBuffer GL15/GL_ELEMENT_ARRAY_BUFFER ebo)
       (GL15/glBufferData GL15/GL_ELEMENT_ARRAY_BUFFER indices GL15/GL_STATIC_DRAW)
 
       ;; set vertex attribute pointers
-      (GL30/glVertexAttribPointer 0 ;; attribute at location 0 in the shader
-                                  vertex-size
+      (GL30/glVertexAttribPointer 0 ;; attribute at location 0 in the shader is position
+                                  position-size ;; position is 3 bytes (xyz)
                                   GL15/GL_FLOAT
                                   false
                                   (* vertex-size (Float/BYTES))
-                                  0)
+                                  0) ;; offset 0 since xyz is at the start of each vertex section
       ;; enable the vertex attribute
       (GL30/glEnableVertexAttribArray 0) ;; location 0
+
+      (GL30/glVertexAttribPointer 1 ;; attribute at location 1 in the shader is color
+                                  color-size ;; color is 3 bytes (rgb)
+                                  GL15/GL_FLOAT
+                                  false
+                                  (* vertex-size (Float/BYTES))
+                                  (* position-size (Float/BYTES))) ;; offset 3 since rgb comes after xyz
+      ;; enable the vertex attribute
+      (GL30/glEnableVertexAttribArray 1) ;; location 1
 
       ;; set up a shader program (a vertex shader and a fragment shader)
       (let [vert-shader-source (slurp (io/resource "shader/basic.vert.glsl"))
@@ -143,14 +159,15 @@
             ;; everything after this will use our shaders
             (GL20/glUseProgram shader-program)
 
-            ;; set the uniform for the shape colour
-            (let [time-value (GLFW/glfwGetTime)
-                  g (+ 0.5 (/ (math/sin time-value)
-                              2))
-                  ;; grab the locatoin of the uniform attribute from the linked shader program
-                  vertex-color-location (GL20/glGetUniformLocation shader-program "color")]
-              ;; set the uniform value
-              (GL20/glUniform4f vertex-color-location 0 g 0 1))
+            ;; @NOTE we removed the uniform from our shader and are passing colour info in the vertices instead.
+            ;; ;; set the uniform for the shape colour
+            ;; (let [time-value (GLFW/glfwGetTime)
+            ;;       g (+ 0.5 (/ (math/sin time-value)
+            ;;                   2))
+            ;;       ;; grab the locatoin of the uniform attribute from the linked shader program
+            ;;       vertex-color-location (GL20/glGetUniformLocation shader-program "color")]
+            ;;   ;; set the uniform value
+            ;;   (GL20/glUniform4f vertex-color-location 0 g 0 1))
 
             ;; bind our VAO
             (GL30/glBindVertexArray vao)
