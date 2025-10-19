@@ -1,6 +1,7 @@
 (ns minimal.core
   (:require [clojure.java.io :as io]
-            [clojure.math :as math])
+            [clojure.math :as math]
+            [minimal.shader :as shader])
   (:import (org.lwjgl BufferUtils)
            (org.lwjgl.glfw Callbacks
                            GLFW
@@ -109,84 +110,46 @@
       (GL30/glEnableVertexAttribArray 1) ;; location 1
 
       ;; set up a shader program (a vertex shader and a fragment shader)
-      (let [vert-shader-source (slurp (io/resource "shader/basic.vert.glsl"))
-            frag-shader-source (slurp (io/resource "shader/basic.frag.glsl"))
-            vert-shader (GL20/glCreateShader GL20/GL_VERTEX_SHADER)
-            frag-shader (GL20/glCreateShader GL20/GL_FRAGMENT_SHADER)]
+      (let [shader-program (shader/program
+                            "shader/basic.vert.glsl"
+                            "shader/basic.frag.glsl")]
+        ;; LOOP ;;
+        (while (not (GLFW/glfwWindowShouldClose window))
 
-        ;; set the source for the vertex shader and compile it
-        (GL20/glShaderSource vert-shader vert-shader-source)
-        (GL20/glCompileShader vert-shader)
+          ;; poll for events
+          (GLFW/glfwPollEvents)
 
-        ;; set the source for the fragment shader and compile it
-        (GL20/glShaderSource frag-shader frag-shader-source)
-        (GL20/glCompileShader frag-shader)
-
-
-        ;; @TODO: check that the shader compilation has worked?
-
-
-        
-
-        ;; create a shader program
-        (let [shader-program (GL20/glCreateProgram)]
-
-          ;; attach the shaders and then link the program
-          (GL20/glAttachShader shader-program vert-shader)
-          (GL20/glAttachShader shader-program frag-shader)
-          (GL20/glLinkProgram shader-program)
-
-          ;; we don't need the shaders anymore, they're linked in the program now
-          (GL20/glDeleteShader vert-shader)
-          (GL20/glDeleteShader frag-shader)
-
-          ;; LOOP ;;
-          (while (not (GLFW/glfwWindowShouldClose window))
-
-            ;; poll for events
-            (GLFW/glfwPollEvents)
-
-            ;; draw background
-            ;; set the clear colour
-            (GL11/glClearColor 1.0 0.6 0.5 1)
-            ;; clear the frameBuffer
-            (GL11/glClear GL11/GL_COLOR_BUFFER_BIT)
+          ;; draw background
+          ;; set the clear colour
+          (GL11/glClearColor 1.0 0.6 0.5 1)
+          ;; clear the frameBuffer
+          (GL11/glClear GL11/GL_COLOR_BUFFER_BIT)
 
 
 
-            ;; draw the shape ;;
+          ;; draw the shape ;;
 
-            ;; everything after this will use our shaders
-            (GL20/glUseProgram shader-program)
+          ;; everything after this will use our shaders
+          (shader/use-program shader-program)
 
-            ;; @NOTE we removed the uniform from our shader and are passing colour info in the vertices instead.
-            ;; ;; set the uniform for the shape colour
-            ;; (let [time-value (GLFW/glfwGetTime)
-            ;;       g (+ 0.5 (/ (math/sin time-value)
-            ;;                   2))
-            ;;       ;; grab the locatoin of the uniform attribute from the linked shader program
-            ;;       vertex-color-location (GL20/glGetUniformLocation shader-program "color")]
-            ;;   ;; set the uniform value
-            ;;   (GL20/glUniform4f vertex-color-location 0 g 0 1))
+          ;; bind our VAO
+          (GL30/glBindVertexArray vao)
 
-            ;; bind our VAO
-            (GL30/glBindVertexArray vao)
+          ;; uncomment to draw wireframe rather than fill
+          ;; (GL11/glPolygonMode GL11/GL_FRONT_AND_BACK GL11/GL_LINE)
 
-            ;; uncomment to draw wireframe rather than fill
-            ;; (GL11/glPolygonMode GL11/GL_FRONT_AND_BACK GL11/GL_LINE)
+          ;; draw the triangles
+          (GL40/glDrawElements GL40/GL_TRIANGLES 6 GL11/GL_UNSIGNED_INT 0)
 
-            ;; draw the triangles
-            (GL40/glDrawElements GL40/GL_TRIANGLES 6 GL11/GL_UNSIGNED_INT 0)
-
-            ;; unbind the VAO
-            (GL30/glBindVertexArray 0)
+          ;; unbind the VAO
+          (GL30/glBindVertexArray 0)
 
 
 
-            
+          
 
-            ;; swap buffers to draw everything
-            (GLFW/glfwSwapBuffers window)))))
+          ;; swap buffers to draw everything
+          (GLFW/glfwSwapBuffers window))))
 
     ;; free window callbacks and destroy the window
     (Callbacks/glfwFreeCallbacks window)
