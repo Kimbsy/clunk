@@ -21,6 +21,7 @@
                              GL20
                              GL30
                              GL40)
+           (org.lwjgl.stb STBImage)
            (org.lwjgl.system MemoryStack)))
 
 (defn hex->rgba
@@ -37,6 +38,58 @@
           (map #(float (/ % 255)))
           vec
           (#(conj % alpha))))))
+
+(defn load-texture!
+  ;; @TODO: texture key not needed
+  [#_texture-key path]
+  ;; generate a texture id and bind it to the 2d texture target
+  (let [tex-id (GL11/glGenTextures)]
+    (GL11/glBindTexture GL11/GL_TEXTURE_2D tex-id)
+
+    ;; set filtering
+    (GL11/glTexParameteri GL11/GL_TEXTURE_2D GL11/GL_TEXTURE_MIN_FILTER GL11/GL_NEAREST_MIPMAP_NEAREST)
+    (GL11/glTexParameteri GL11/GL_TEXTURE_2D GL11/GL_TEXTURE_MAG_FILTER GL11/GL_NEAREST)
+    ;; clamp edges
+    (GL11/glTexParameteri GL11/GL_TEXTURE_2D GL11/GL_TEXTURE_WRAP_S GL30/GL_CLAMP_TO_EDGE)
+    (GL11/glTexParameteri GL11/GL_TEXTURE_2D GL11/GL_TEXTURE_WRAP_T GL30/GL_CLAMP_TO_EDGE)
+    
+    ;; prepare buffers for width and height info
+    (with-open [stack (MemoryStack/stackPush)]
+      (let [p-w (.mallocInt stack 1)
+            p-h (.mallocInt stack 1)
+            cmp (.mallocInt stack 1)]
+        ;; tell STB to flip images on load if png origin differs
+        (STBImage/stbi_set_flip_vertically_on_load false)
+
+        ;; load the image (force 4 channel RGBA), we're not using
+        ;; `cmp` (normally called `comp`) it grabs the number of
+        ;; channels (components) actually found in the original image.
+        (let [image (STBImage/stbi_load path p-w p-h cmp 4)]
+          (when-not image
+            (throw (RuntimeException.
+                    (str "Failed to load image '" path "': "
+                         (STBImage/stbi_failure_reason)))))          
+          ;; upload to GPU
+          (GL11/glTexImage2D GL11/GL_TEXTURE_2D
+                             0
+                             GL11/GL_RGBA8
+                             (.get p-w 0)
+                             (.get p-h 0)
+                             0
+                             GL11/GL_RGBA
+                             GL11/GL_UNSIGNED_BYTE
+                             image)
+          ;; generate mipmaps
+          (GL30/glGenerateMipmap GL11/GL_TEXTURE_2D)
+          
+          ;; cleanup
+          (STBImage/stbi_image_free image)
+
+          ;; @TODO: clunk uses an atom to store textures, will we still need this?
+          ;; ;; Add the texture id to the textures atom
+          ;; (swap! textures assoc texture-key tex-id)
+
+          tex-id)))))
 
 (defn -main
   []
@@ -71,10 +124,15 @@
     ;; available for use
     (GL/createCapabilities)
 
+    ;; enable transparency for image drawing
+    (GL11/glEnable GL11/GL_BLEND)
+    (GL30/glBlendFuncSeparate GL11/GL_SRC_ALPHA GL11/GL_ONE_MINUS_SRC_ALPHA GL11/GL_ONE GL11/GL_ONE_MINUS_SRC_ALPHA)
+
     ;; setting up primitive drawing
     (let [position-size 3
           color-size 3
-          vertex-size 6 ;; x,y,z,r,g,b
+          tex-coord-size 2
+          vertex-size 8 ;; x,y,z,r,g,b,tx,ty
           ;; a Vertex Buffer Object (VBO) for holding the vertex data
           vbo (GL15/glGenBuffers)
           ;; a Vertex Array Object (VAO) for holding the attributes for the vbo
@@ -82,15 +140,17 @@
           ;; an Element Array Buffer (EBO) for storing the indices of our vertices
           ebo (GL15/glGenBuffers)
 
+          ;; @TODO: we only need a 2 byte attribute for position since we'll always be 2d
           ;; define a rectangle using 4 vertices and 2 triangles
+          ;; each vertex has a position, a colour, and a texture coordinate
           vertices (float-array [;; top right
-                                 0.5 0.5 0    1 0 0
+                                 0.5 1 0 ,, 1 0 0 ,, 1/7 0.25
                                  ;; bottom right
-                                 0.5 -0.5 0   0 1 0
+                                 0.5 -0.5 0 ,, 0 1 0 ,, 1/7 0.5
                                  ;; bottom left
-                                 -0.5 -0.5 0  0 0 1
+                                 -0.5 -0.5 0 ,, 0 0 1 ,, 0 0.5
                                  ;; top left
-                                 -0.5 0.5 0   1 1 0
+                                 -0.5 1 0 ,, 1 1 0 ,, 0 0.25
                                  ])
           indices (int-array [0 1 3    ;; first tri
                               1 2 3])] ;; second tri
@@ -113,8 +173,7 @@
                                   false
                                   (* vertex-size (Float/BYTES))
                                   0) ;; offset 0 since xyz is at the start of each vertex section
-      ;; enable the vertex attribute
-      (GL30/glEnableVertexAttribArray 0) ;; location 0
+      (GL30/glEnableVertexAttribArray 0)
 
       (GL30/glVertexAttribPointer 1 ;; attribute at location 1 in the shader is color
                                   color-size ;; color is 3 bytes (rgb)
@@ -122,13 +181,24 @@
                                   false
                                   (* vertex-size (Float/BYTES))
                                   (* position-size (Float/BYTES))) ;; offset 3 since rgb comes after xyz
-      ;; enable the vertex attribute
-      (GL30/glEnableVertexAttribArray 1) ;; location 1
+      (GL30/glEnableVertexAttribArray 1)
+
+      (GL30/glVertexAttribPointer 2 ;; attribute at location 2 in the shader is tex-coord
+                                  tex-coord-size
+                                  GL15/GL_FLOAT
+                                  false
+                                  (* vertex-size (Float/BYTES))
+                                  (* (+ position-size color-size) (Float/BYTES))) ;; offset 6 since tx,ty comes after xyz,rgb
+      (GL30/glEnableVertexAttribArray 2)
 
       ;; set up a shader program (a vertex shader and a fragment shader)
       (let [shader-program (shader/program
-                            "shader/basic.vert"
-                            "shader/basic.frag")]
+                            "shader/texture.vert"
+                            "shader/texture.frag")
+            texture (load-texture! "resources/img/captain.png")]
+
+        ;; @TODO: we should specify the animation x and y as uniforms
+        
         ;; LOOP ;;
         (while (not (GLFW/glfwWindowShouldClose window))
 
@@ -143,10 +213,23 @@
 
 
 
+          ;; now we can draw using our drop-in fill-poly replacement
+          (shape/fill-poly! [0 0]
+                            [[0 -0.345]
+                             [-0.2 -0.905]
+                             [-0.8 -0.905]
+                             [-0.975 -0.345]
+                             [-0.5 0.0]]
+                            [0.13 0.54 0.68 1])
+          
+
           ;; draw the shape ;;
 
           ;; everything after this will use our shaders
           (shader/use-program shader-program)
+
+          ;; bind the texture to draw
+          (GL30/glBindTexture GL30/GL_TEXTURE_2D texture)
 
           ;; bind our VAO
           (GL30/glBindVertexArray vao)
@@ -161,13 +244,10 @@
           (GL30/glBindVertexArray 0)
 
 
-          (shape/fill-poly [0 0]
-                           [[0.475 0.155]
-                            [0.295 -0.405]
-                            [-0.295 -0.405]
-                            [-0.475 0.155]
-                            [0.0 0.5]]
-                           [0.1254902 0.5411765 0.68235296 1])
+          
+
+
+          
 
 
           
