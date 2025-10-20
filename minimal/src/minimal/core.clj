@@ -1,7 +1,8 @@
 (ns minimal.core
   (:require [clojure.java.io :as io]
             [clojure.math :as math]
-            [minimal.shader :as shader])
+            [minimal.shader :as shader]
+            [minimal.shape :as shape])
   (:import (org.lwjgl BufferUtils)
            (org.lwjgl.glfw Callbacks
                            GLFW
@@ -21,6 +22,21 @@
                              GL30
                              GL40)
            (org.lwjgl.system MemoryStack)))
+
+(defn hex->rgba
+  ([hex-string]
+   (hex->rgba hex-string 1))
+  ([hex-string alpha]
+   (let [s (if (= \# (first hex-string))
+             (apply str (rest hex-string))
+             hex-string)]
+     (->> s
+          (partition 2)
+          (map (partial apply str "0x"))
+          (map read-string)
+          (map #(float (/ % 255)))
+          vec
+          (#(conj % alpha))))))
 
 (defn -main
   []
@@ -68,13 +84,13 @@
 
           ;; define a rectangle using 4 vertices and 2 triangles
           vertices (float-array [;; top right
-                                 0.5 0.5 0    0 1 0
+                                 0.5 0.5 0    1 0 0
                                  ;; bottom right
-                                 0.5 -0.5 0   1 0 0
+                                 0.5 -0.5 0   0 1 0
                                  ;; bottom left
-                                 -0.5 -0.5 0  0 1 0
+                                 -0.5 -0.5 0  0 0 1
                                  ;; top left
-                                 -0.5 0.5 0   0 0 1
+                                 -0.5 0.5 0   1 1 0
                                  ])
           indices (int-array [0 1 3    ;; first tri
                               1 2 3])] ;; second tri
@@ -111,8 +127,8 @@
 
       ;; set up a shader program (a vertex shader and a fragment shader)
       (let [shader-program (shader/program
-                            "shader/basic.vert.glsl"
-                            "shader/basic.frag.glsl")]
+                            "shader/basic.vert"
+                            "shader/basic.frag")]
         ;; LOOP ;;
         (while (not (GLFW/glfwWindowShouldClose window))
 
@@ -144,6 +160,14 @@
           ;; unbind the VAO
           (GL30/glBindVertexArray 0)
 
+
+          (shape/fill-poly [0 0]
+                           [[0.475 0.155]
+                            [0.295 -0.405]
+                            [-0.295 -0.405]
+                            [-0.475 0.155]
+                            [0.0 0.5]]
+                           [0.1254902 0.5411765 0.68235296 1])
 
 
           

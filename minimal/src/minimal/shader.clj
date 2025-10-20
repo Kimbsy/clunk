@@ -82,6 +82,17 @@
 ;;      (GL20/glGetUniformLocation shader-program uniform-name)
 ;;      (float value))))
 
+
 (defn use-program
   [shader-program]
   (GL20/glUseProgram shader-program))
+
+;; @TODO: we should create these default shaders when the game inits, this will compile the shader every frame
+(defn solid-color
+  [color]
+  (let [solid-color-program (program "shader/solid-color.vert" "shader/solid-color.frag")]
+    ;; need to use the program first for our uniform setting to apply to it
+    (use-program solid-color-program)
+    (GL20/glUniform4fv
+     (GL20/glGetUniformLocation solid-color-program "color")
+     (float-array color))))
