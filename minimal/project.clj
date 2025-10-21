@@ -34,7 +34,10 @@
                  [org.lwjgl/lwjgl-openal "3.3.6" :classifier "natives-windows"]
                  [org.lwjgl/lwjgl-opengl "3.3.6" :classifier "natives-windows"]
                  [org.lwjgl/lwjgl-stb "3.3.6" :classifier "natives-windows"]
-                 [org.lwjgl/lwjgl-nanovg "3.3.6" :classifier "natives-windows"]]
+                 [org.lwjgl/lwjgl-nanovg "3.3.6" :classifier "natives-windows"]
+
+                 [org.joml/joml "1.10.8"]
+                 [org.joml/joml-primitives "1.10.0"]]
   :main ^:skip-aot minimal.core
   :jvm-opts ["-XstartOnFirstThread"]
   :target-path "target/%s")
