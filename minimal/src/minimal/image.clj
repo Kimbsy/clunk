@@ -1,5 +1,6 @@
 (ns minimal.image
-  (:require [minimal.shader :as shader])
+  (:require [minimal.shader :as shader]
+            [clojure.math :as math])
   (:import (org.joml Matrix4f)
            (org.lwjgl.opengl GL11 GL15 GL20 GL30 GL40)
            (org.lwjgl.stb STBImage)
@@ -77,27 +78,21 @@
          ;; an Element Array Buffer (EBO) for storing the indices of our vertices
          ebo (GL15/glGenBuffers)
 
-         ;; @TODO: calculate the vertices properly, surely we need to know the window size to do this?
-
          ;; @TODO: do we only need a 2 byte attribute for position since we'll always be 2d
          ;; define a rectangle using 4 vertices and 2 triangles
          ;; each vertex has a position and a texture coordinate
-         x0 pos-x
-         x1 (+ pos-x draw-w)
-         y0 pos-y
-         y1 (+ pos-y draw-h)
          tx0 (/ off-x parent-w)
          ty0 (/ off-y parent-h)
          tx1 (/ (+ off-x draw-w) parent-w)
          ty1 (/ (+ off-y draw-h) parent-h)
          vertices (float-array [;; top right
-                                x1 y1 0 ,, tx1 ty1
+                                1 1 0 ,, tx1 ty1
                                 ;; bottom right
-                                x1 y0 0 ,, tx1 ty0
+                                1 0 0 ,, tx1 ty0
                                 ;; bottom left
-                                x0 y0 0 ,, tx0 ty0
+                                0 0 0 ,, tx0 ty0
                                 ;; top left
-                                x0 y1 0 ,, tx0 ty1
+                                0 1 0 ,, tx0 ty1
                                 ])
          indices (int-array [0 1 3    ;; first tri
                              1 2 3])] ;; second tri
@@ -145,12 +140,24 @@
        ;; attach the orthographic projection matrix as a uniform
        ;; compute & upload an orthographic projection matrix
        (let [[screen-w screen-h] screen-dims
-             proj (doto (Matrix4f.) (.setOrtho2D 0 screen-w screen-h 0))]
+             ;; ortho projection matrix takes us from world space to clip space
+             proj (doto (Matrix4f.)
+                    (.setOrtho2D 0 screen-w screen-h 0))
+             ;; the model transformatino matrix handles translating from 0,0 to pos, rotation and scaling (which we don't have yet)
+             model (doto (Matrix4f.)
+                     (.identity)
+                     (.translate pos-x pos-y 0)
+                     (.rotate (math/to-radians rotation) 0 0 1)
+                     (.scale draw-w draw-h 1))]
          (with-open [stack (MemoryStack/stackPush)]
-           (let [buf (.mallocFloat stack 16)
-                 loc (GL20/glGetUniformLocation shader-program "uOrthoProjection")]
-             (.get proj buf)
-             (GL20/glUniformMatrix4fv loc false buf))))
+           (let [proj-buf (.mallocFloat stack 16)
+                 model-buf (.mallocFloat stack 16)
+                 proj-loc (GL20/glGetUniformLocation shader-program "uOrthoProjection")
+                 model-loc (GL20/glGetUniformLocation shader-program "uModel")]
+             (.get proj proj-buf)
+             (.get model model-buf)
+             (GL20/glUniformMatrix4fv proj-loc false proj-buf)
+             (GL20/glUniformMatrix4fv model-loc false model-buf))))
 
 
        ;; draw the triangles

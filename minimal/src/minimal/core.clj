@@ -58,13 +58,23 @@
       ;; draw the image
       (let [texture (image/load-texture! nil "resources/img/captain.png")]
         (image/draw-sub-image! texture
-                               [0 0] ; pos
+                               [100 100] ; pos
+                               [1680 1440] ; spritesheet dims
+                               [0 0] ; offsets inside the spritesheet
+                               [240 360]
+                               (* 20 (GLFW/glfwGetTime))   ; rotation
+                               [800 600] ; screen dims
+                               )
+
+        (image/draw-sub-image! texture
+                               [400 100] ; pos
                                [1680 1440] ; spritesheet dims
                                [0 0] ; offsets inside the spritesheet
                                [240 360]
                                0 ; rotation
                                [800 600] ; screen dims
-                               ))       
+                               )
+        )       
 
       ;; swap buffers to draw everything
       (GLFW/glfwSwapBuffers window))
