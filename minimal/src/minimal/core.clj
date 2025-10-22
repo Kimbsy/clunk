@@ -1,6 +1,9 @@
 (ns minimal.core
-  (:require [minimal.image :as image])
+  (:require [minimal.image :as image]
+            [minimal.text :as text])
   (:import (org.lwjgl.glfw Callbacks GLFW GLFWErrorCallback)
+           (org.lwjgl.nanovg NanoVGGL3
+                             NVGColor)
            (org.lwjgl.opengl GL GL11 GL15 GL30)))
 
 (defn -main
@@ -17,6 +20,9 @@
   (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_PROFILE GLFW/GLFW_OPENGL_CORE_PROFILE)
   ;; required on macOS
   (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_FORWARD_COMPAT GLFW/GLFW_TRUE)
+
+  ;; for nanovg
+  (GLFW/glfwWindowHint GLFW/GLFW_STENCIL_BITS 8)
 
   (let [window (GLFW/glfwCreateWindow 800 600 "Hello, World!" 0 0)]
     (when (zero? window)
@@ -36,48 +42,68 @@
     ;; available for use
     (GL/createCapabilities)
 
+    
+    ;; create a dummy VAO for compatibility stuff?
+    (GL30/glBindVertexArray (GL30/glGenVertexArrays))
+
+
     ;; set viewport to the window size so NDC maps to pixels
     (GL11/glViewport 0 0 800 600)
 
-    ;; enable transparency for image drawing
-    (GL11/glEnable GL11/GL_BLEND)
-    (GL30/glBlendFuncSeparate GL11/GL_SRC_ALPHA GL11/GL_ONE_MINUS_SRC_ALPHA GL11/GL_ONE GL11/GL_ONE_MINUS_SRC_ALPHA)
+    ;; initialise nanovg for text
+    (let [vg (NanoVGGL3/nvgCreate (bit-or NanoVGGL3/NVG_ANTIALIAS
+                                          NanoVGGL3/NVG_STENCIL_STROKES))
+          ;; load a font
+          default-font"UbuntuMono-Regular"
+          font (text/create-font vg default-font "font/UbuntuMono-Regular.ttf")
+          vg-color (NVGColor/create)]
 
-    ;; setting up primitive drawing
-    (while (not (GLFW/glfwWindowShouldClose window))
+      ;; enable transparency for image drawing
+      (GL11/glEnable GL11/GL_BLEND)
+      (GL30/glBlendFuncSeparate GL11/GL_SRC_ALPHA GL11/GL_ONE_MINUS_SRC_ALPHA GL11/GL_ONE GL11/GL_ONE_MINUS_SRC_ALPHA)
 
-      ;; poll for events
-      (GLFW/glfwPollEvents)
+      ;; setting up primitive drawing
+      (while (not (GLFW/glfwWindowShouldClose window))
 
-      ;; draw background
-      ;; set the clear colour
-      (GL11/glClearColor 1.0 0.6 0.5 1)
-      ;; clear the frameBuffer
-      (GL11/glClear GL11/GL_COLOR_BUFFER_BIT)
+        ;; poll for events
+        (GLFW/glfwPollEvents)
 
-      ;; draw the image
-      (let [texture (image/load-texture! nil "resources/img/captain.png")]
-        (image/draw-sub-image! texture
-                               [100 100] ; pos
-                               [1680 1440] ; spritesheet dims
-                               [0 0] ; offsets inside the spritesheet
-                               [240 360]
-                               (* 20 (GLFW/glfwGetTime))   ; rotation
-                               [800 600] ; screen dims
-                               )
+        ;; draw background
+        ;; set the clear colour
+        (GL11/glClearColor 1.0 0.6 0.5 1)
+        ;; clear the frameBuffer
+        (GL11/glClear GL11/GL_COLOR_BUFFER_BIT)
 
-        (image/draw-sub-image! texture
-                               [400 100] ; pos
-                               [1680 1440] ; spritesheet dims
-                               [0 0] ; offsets inside the spritesheet
-                               [240 360]
-                               0 ; rotation
-                               [800 600] ; screen dims
-                               )
-        )       
+        ;; draw the image
+        (let [texture (image/load-texture! nil "resources/img/captain.png")]
+          (image/draw-sub-image! texture
+                                 [100 100] ; pos
+                                 [1680 1440] ; spritesheet dims
+                                 [0 0] ; offsets inside the spritesheet
+                                 [240 360]
+                                 (* 20 (GLFW/glfwGetTime))   ; rotation
+                                 [800 600] ; screen dims
+                                 )
 
-      ;; swap buffers to draw everything
-      (GLFW/glfwSwapBuffers window))
+          (image/draw-sub-image! texture
+                                 [400 100] ; pos
+                                 [1680 1440] ; spritesheet dims
+                                 [0 0] ; offsets inside the spritesheet
+                                 [240 360]
+                                 0 ; rotation
+                                 [800 600] ; screen dims
+                                 )
+
+          (text/draw-text! {:window window
+                            :vg vg
+                            :vg-color vg-color
+                            :default-font default-font}
+                           [100 100]
+                           "Hello, World!")
+          )       
+
+        ;; swap buffers to draw everything
+        (GLFW/glfwSwapBuffers window)))
 
     ;; free window callbacks and destroy the window
     (Callbacks/glfwFreeCallbacks window)
