@@ -9,6 +9,9 @@
                              GL14
                              GL30)))
 
+;; hack to stop font memory buffers from being freed
+(defonce ^:private font-buffers (atom {}))
+
 (defn create-font
   "Load a .ttf from a classpath resource and register it as `name` in
   the NanoVG context `vg`."
@@ -21,6 +24,8 @@
       (let [buf (doto (BufferUtils/createByteBuffer (alength ba))
                   (.put ba)
                   (.flip))]
+        ;; keep a reference so GC doesn't free it
+        (swap! font-buffers assoc name buf)
         (NanoVG/nvgCreateFontMem vg name buf false)))))
 
 (defn capture-gl-state

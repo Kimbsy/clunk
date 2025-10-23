@@ -203,7 +203,7 @@
                 [b c pos]
                 [c a pos]])))
 
-(defn- other-points
+(defn other-points
   "Return the points which are not in the ear starting at index `i`"
   [i points]
   (let [n (count points)
@@ -216,7 +216,7 @@
       :else (concat (take i points)
                     (drop (+ i 3) points)))))
 
-(defn- all-ears
+(defn all-ears
   "Return all the ears of a polygon"
   [points]
   (keep-indexed
@@ -236,14 +236,14 @@
   [poly]
   (loop [p poly
          tris []]
-    (if (seq p)
+    (if-not (= 3 (count p))
       (if-let [[i tri] (first (all-ears p))]
         (recur (remove-nth (mod (inc i) (count p)) p)
                (conj tris tri))
         (do (prn "FOUND NO EARS????")
             (prn p)
             tris))
-      tris)))
+      (conj tris (vec p)))))
 
 (defn ellipse-points
   "Generate a collection of `[x y]` points in CCW order around an

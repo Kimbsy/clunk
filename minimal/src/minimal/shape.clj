@@ -94,6 +94,7 @@
 
 ;; @TODO: would be nice to use an EBO to store the triangle indices and save a bunch of duplicated shared vertices
 (defn fill-poly!
+  "Draw a polygon filled with the specified colour."
   ;; @TODO: send [x y] pos into the shader
   ;; @TODO: normalize the poly points somewhere @NOTE: can we do this via the attribute definition? it has a normalize flag.
   [[x y] poly color]

@@ -5,6 +5,7 @@
             :url "https://opensource.org/licenses/MIT"}
   :dependencies [[org.clojure/clojure "1.12.1"]
                  [org.clojure/math.combinatorics "0.3.0"]
+                 [org.joml/joml "1.10.8"]
                  [org.lwjgl/lwjgl "3.3.6"]
                  [org.lwjgl/lwjgl-assimp "3.3.6"]
                  [org.lwjgl/lwjgl-glfw "3.3.6"]

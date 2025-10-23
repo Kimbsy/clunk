@@ -9,96 +9,263 @@
   relative to the `pos`.
 
   Colors are `[r g b a]` vectors."
-  (:require [clunk.util :as u])
-  (:import (org.lwjgl.opengl GL11)))
+  (:require [clunk.util :as u]
+            [clunk.shader :as shader]
+            [clojure.math :as math])
+  (:import (org.joml Matrix4f)
+           (org.lwjgl.opengl GL11
+                             GL15
+                             GL20
+                             GL30
+                             GL40)
+           (org.lwjgl.system MemoryStack)))
 
 (def default-line-width 1)
 
+;; @TODO: HERE HERE @TODO:
+
+;; shapes don't seem to be drawing
+
+;; @TODO: huge amount of duplicated code between these functions, just trying to get them to work first
+
 (defn draw-lines!
-  [lines [r g b a] &
+  [{:keys [ortho-projection]
+    {solid-color-program :solid-color} :shader-programs}
+   lines color &
    {:keys [line-width]
     :or {line-width default-line-width}}]
-  (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
-  (GL11/glColor4f r g b a)
-  (GL11/glLineWidth line-width)
-  (GL11/glBegin GL11/GL_LINES)
-  (doseq [[[p1x p1y] [p2x p2y]] lines]
-    (GL11/glVertex2f p1x p1y)
-    (GL11/glVertex2f p2x p2y))
-  (GL11/glEnd))
+  (let [position-size 3
+        vertex-size 3 ;; x,y,z
+        ;; a Vertex Buffer Object (VBO) for holding the vertex data
+        vbo (GL15/glGenBuffers)
+        ;; a Vertex Array Object (VAO) for holding the attributes for the vbo
+        vao (GL30/glGenVertexArrays)
+        ;; add z=0 to the lines and stick all points in a flat float array
+        vertices (->> lines
+                      (apply concat)
+                      (map #(conj % 0))
+                      (apply concat)
+                      float-array)]
+
+    ;; @TODO: maybe eventually the vao will be passed in (or grabbed form the sprite)
+    ;; bind the vao, now everything following should be inside it
+    (GL30/glBindVertexArray vao)
+
+    ;; copy the vertex data into the vbo
+    (GL15/glBindBuffer GL15/GL_ARRAY_BUFFER vbo)
+    (GL15/glBufferData GL15/GL_ARRAY_BUFFER vertices GL15/GL_STATIC_DRAW)
+
+    ;; set vertex attribute pointers
+    (GL30/glVertexAttribPointer 0 ;; attribute at location 0 in the shader is position
+                                position-size ;; position is 3 bytes (xyz)
+                                GL15/GL_FLOAT
+                                false
+                                (* vertex-size (Float/BYTES))
+                                0) ;; offset 0 since xyz is at the start of each vertex section
+    ;; enable the vertex attribute
+    (GL30/glEnableVertexAttribArray 0) ;; location 0
+
+    ;; draw the shape ;;
+
+    ;; everything after this will use our shaders
+    (shader/solid-color color)
+
+    ;; the lines are given using absolute coords so the model transform uniform is the identity
+    (let [model (doto (Matrix4f.)
+                  (.identity))]
+      (with-open [stack (MemoryStack/stackPush)]
+        (let [proj-buf (.mallocFloat stack 16)
+              model-buf (.mallocFloat stack 16)
+              proj-loc (GL20/glGetUniformLocation solid-color-program "uOrthoProjection")
+              model-loc (GL20/glGetUniformLocation solid-color-program "uModel")]
+          (.get ortho-projection proj-buf)
+          (.get model model-buf)
+          ;; attach the orthographic projection matrix and the model matrix as uniforms
+          (GL20/glUniformMatrix4fv proj-loc false proj-buf)
+          (GL20/glUniformMatrix4fv model-loc false model-buf))))
+
+    ;; draw the triangles
+    (GL40/glDrawArrays GL40/GL_LINES 0 (count vertices))
+
+    ;; unbind the VAO
+    (GL30/glBindVertexArray 0)))
 
 (defn draw-line!
-  [p1 p2 color & opts]
-  (apply draw-lines! [[p1 p2]] color opts))
+  [state p1 p2 color & opts]
+  (apply draw-lines! state [[p1 p2]] color opts))
 
 (defn draw-curve!
   "Takes a sequence of points and connects them with lines.
 
   See the `clunk.util/bezier-curve` function."
-  [points color & opts]
-  (apply draw-lines! (partition 2 1 points) color opts))
+  [state points color & opts]
+  (apply draw-lines! state (partition 2 1 points) color opts))
 
 (defn draw-poly!
-  [[x y] poly [r g b a] &
+  [{:keys [ortho-projection]
+    {solid-color-program :solid-color} :shader-programs}
+   [x y] poly color &
    {:keys [line-width]
     :or {line-width default-line-width}}]
-  (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
-  (GL11/glColor4f r g b a)
-  (GL11/glLineWidth line-width)
-  (GL11/glBegin GL11/GL_LINE_LOOP)
-  (doseq [[bx by] poly]
-    (GL11/glVertex2f (+ x bx) (+ y by)))
-  (GL11/glEnd))
+  (let [position-size 3
+        vertex-size 3 ;; x,y,z
+        ;; a Vertex Buffer Object (VBO) for holding the vertex data
+        vbo (GL15/glGenBuffers)
+        ;; a Vertex Array Object (VAO) for holding the attributes for the vbo
+        vao (GL30/glGenVertexArrays)
+        ;; triangulate the polygon and stick all points in a flat float array
+        tris (u/triangulate poly)
+        vertices (->> tris
+                      (apply concat)
+                      (map #(conj % 0))
+                      (apply concat)
+                      float-array)]
 
-(defn fill-convex-poly!
-  "Draw a convex polygon filled with the specified colour."
-  [[x y] poly [r g b a]]
-  (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
-  (GL11/glColor4f r g b a)
-  (GL11/glBegin GL11/GL_POLYGON)
-  (doseq [[bx by] poly]
-    (GL11/glVertex2f (+ x bx) (+ y by)))
-  (GL11/glEnd))
+    ;; @TODO: maybe eventually the vao will be passed in (or grabbed form the sprite)
+    ;; bind the vao, now everything following should be inside it
+    (GL30/glBindVertexArray vao)
 
-(defn fill-concave-poly!
-  "Draw a concave polygon filled with the specified colour."
-  [pos poly color]
-  (doseq [t (u/triangulate poly)]
-    (fill-convex-poly! pos t color)))
+    ;; copy the vertex data into the vbo
+    (GL15/glBindBuffer GL15/GL_ARRAY_BUFFER vbo)
+    (GL15/glBufferData GL15/GL_ARRAY_BUFFER vertices GL15/GL_STATIC_DRAW)
 
+    ;; set vertex attribute pointers
+    (GL30/glVertexAttribPointer 0 ;; attribute at location 0 in the shader is position
+                                position-size ;; position is 3 bytes (xyz)
+                                GL15/GL_FLOAT
+                                false
+                                (* vertex-size (Float/BYTES))
+                                0) ;; offset 0 since xyz is at the start of each vertex section
+    ;; enable the vertex attribute
+    (GL30/glEnableVertexAttribArray 0) ;; location 0
+
+    ;; draw the shape ;;
+
+    ;; everything after this will use our shaders
+    (shader/solid-color color)
+
+    ;; draw wireframe rather than fill
+    (GL11/glPolygonMode GL11/GL_FRONT_AND_BACK GL11/GL_LINE)
+
+    ;; the model transformation matrix handles translation
+    (let [model (doto (Matrix4f.)
+                  (.identity)
+                  (.translate x y 0))]
+      (with-open [stack (MemoryStack/stackPush)]
+        (let [proj-buf (.mallocFloat stack 16)
+              model-buf (.mallocFloat stack 16)
+              proj-loc (GL20/glGetUniformLocation solid-color-program "uOrthoProjection")
+              model-loc (GL20/glGetUniformLocation solid-color-program "uModel")]
+          (.get ortho-projection proj-buf)
+          (.get model model-buf)
+          ;; attach the orthographic projection matrix and the model matrix as uniforms
+          (GL20/glUniformMatrix4fv proj-loc false proj-buf)
+          (GL20/glUniformMatrix4fv model-loc false model-buf))))
+
+    ;; draw the triangles
+    (GL40/glDrawArrays GL40/GL_TRIANGLES 0 (count vertices))
+
+    ;; unbind the VAO
+    (GL30/glBindVertexArray 0)
+
+    ;; reset to normal fill mode
+    (GL11/glPolygonMode GL11/GL_FRONT_AND_BACK GL11/GL_FILL)))
+
+;; @TODO: would be nice to use an EBO to store the triangle indices and save a bunch of duplicated shared vertices
 (defn fill-poly!
   "Draw a polygon filled with the specified colour."
-  [pos poly color]
-  (if (u/convex? poly)
-    (fill-convex-poly! pos poly color)
-    (fill-concave-poly! pos poly color)))
+  ;; @TODO: send [x y] pos into the shader
+  ;; @TODO: normalize the poly points somewhere @NOTE: can we do this via the attribute definition? it has a normalize flag.
+  [{:keys [ortho-projection]
+    {solid-color-program :solid-color} :shader-programs}
+   [x y] poly color]
+  (let [position-size 3
+        vertex-size 3 ;; x,y,z
+        ;; a Vertex Buffer Object (VBO) for holding the vertex data
+        vbo (GL15/glGenBuffers)
+        ;; a Vertex Array Object (VAO) for holding the attributes for the vbo
+        vao (GL30/glGenVertexArrays)
+        ;; triangulate the polygon and stick all points in a flat float array
+        tris (u/triangulate poly)
+        vertices (->> tris
+                      (apply concat)
+                      (map #(conj % 0))
+                      (apply concat)
+                      float-array)]
+
+    ;; @TODO: maybe eventually the vao will be passed in (or grabbed form the sprite)
+    ;; bind the vao, now everything following should be inside it
+    (GL30/glBindVertexArray vao)
+
+    ;; copy the vertex data into the vbo
+    (GL15/glBindBuffer GL15/GL_ARRAY_BUFFER vbo)
+    (GL15/glBufferData GL15/GL_ARRAY_BUFFER vertices GL15/GL_STATIC_DRAW)
+
+    ;; set vertex attribute pointers
+    (GL30/glVertexAttribPointer 0 ;; attribute at location 0 in the shader is position
+                                position-size ;; position is 3 bytes (xyz)
+                                GL15/GL_FLOAT
+                                false
+                                (* vertex-size (Float/BYTES))
+                                0) ;; offset 0 since xyz is at the start of each vertex section
+    ;; enable the vertex attribute
+    (GL30/glEnableVertexAttribArray 0) ;; location 0
+
+    ;; draw the shape ;;
+
+    ;; everything after this will use our shaders
+    (shader/solid-color color)
+
+    ;; uncomment to draw wireframe rather than fill
+    ;; (GL11/glPolygonMode GL11/GL_FRONT_AND_BACK GL11/GL_LINE)
+
+    ;; the model transformation matrix handles translation
+    (let [model (doto (Matrix4f.)
+                  (.identity)
+                  (.translate x y 0))]
+      (with-open [stack (MemoryStack/stackPush)]
+        (let [proj-buf (.mallocFloat stack 16)
+              model-buf (.mallocFloat stack 16)
+              proj-loc (GL20/glGetUniformLocation solid-color-program "uOrthoProjection")
+              model-loc (GL20/glGetUniformLocation solid-color-program "uModel")]
+          (.get ortho-projection proj-buf)
+          (.get model model-buf)
+          ;; attach the orthographic projection matrix and the model matrix as uniforms
+          (GL20/glUniformMatrix4fv proj-loc false proj-buf)
+          (GL20/glUniformMatrix4fv model-loc false model-buf))))
+
+    ;; draw the triangles
+    (GL40/glDrawArrays GL40/GL_TRIANGLES 0 (count vertices))
+
+    ;; unbind the VAO
+    (GL30/glBindVertexArray 0)))
 
 (defn draw-rect!
-  [pos [w h] color & opts]
+  [state pos [w h] color & opts]
   (apply draw-poly!
+         state
          pos
          [[0 0]
-          [w 0]
+          [0 h]
           [w h]
-          [0 h]]
+          [w 0]]
          color
          opts))
 
 (defn fill-rect!
-  [[x y] [w h] [r g b a]]
-  (GL11/glDisable GL11/GL_TEXTURE_2D) ;; we dont want the texture drawing config
-  (GL11/glColor4f r g b a)
-  (GL11/glBegin GL11/GL_QUADS)
-  (GL11/glVertex2f x y)
-  (GL11/glVertex2f (+ x w) y)
-  (GL11/glVertex2f (+ x w) (+ y h))
-  (GL11/glVertex2f x (+ y h))
-  (GL11/glEnd))
+  [state pos [w h] color]
+  (fill-poly! state
+              pos
+              [[0 0]
+               [0 h]
+               [w h]
+               [w 0]]
+              color))
 
 (defn draw-ellipse!
-  [pos size color & opts]
-  (apply draw-poly! pos (u/ellipse-points size) color opts))
+  [state pos size color & opts]
+  (apply draw-poly! state pos (u/ellipse-points size) color opts))
 
 (defn fill-ellipse!
-  [pos size color]
-  (fill-poly! pos (u/ellipse-points size) color))
+  [state pos size color]
+  (fill-poly! state pos (u/ellipse-points size) color))

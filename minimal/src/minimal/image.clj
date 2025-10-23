@@ -54,7 +54,7 @@
 
           ;; @TODO: clunk uses an atom to store textures, will we still need this?
           ;; ;; Add the texture id to the textures atom
-          ;; (swap! textures assoc texture-key tex-id)
+          (swap! textures assoc texture-key tex-id)
 
           tex-id)))))
 

@@ -5,8 +5,10 @@
             [clunk.palette :as p]
             [clunk.shape :as shape]
             [clunk.text :as text]
-            [clunk.util :as u])
-  (:import (org.lwjgl.glfw Callbacks
+            [clunk.util :as u]
+            [clunk.shader :as shader])
+  (:import (org.joml Matrix4f)
+           (org.lwjgl.glfw Callbacks
                            GLFW
                            GLFWCursorPosCallbackI
                            GLFWErrorCallback
@@ -39,14 +41,12 @@
     es))
 
 (defn reset-ortho-projection
-  [w h]
-  (GL11/glMatrixMode GL11/GL_PROJECTION)
-  (GL11/glLoadIdentity)
-  ;; left, right, top, bottom in pixel units
-  (GL11/glOrtho 0 w h 0 -1 1)
-  ;; go back to model view
-  (GL11/glMatrixMode GL11/GL_MODELVIEW)
-  (GL11/glLoadIdentity))
+  [{:keys [window] :as state}]
+  (let [[w h] (u/window-size window)]
+    (GL11/glViewport 0 0 w h)
+    (assoc state :ortho-projection
+           (doto (Matrix4f.)
+             (.setOrtho2D 0 w h 0)))))
 
 (defn init-error-callback
   "Set up an error callback, the default implementation will print
@@ -68,6 +68,16 @@
   (GLFW/glfwWindowHint GLFW/GLFW_VISIBLE GLFW/GLFW_FALSE)
   ;; the window will be resizable
   (GLFW/glfwWindowHint GLFW/GLFW_RESIZABLE GLFW/GLFW_TRUE)
+
+  ;; request OpenGL 3.3 core profile
+  (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MAJOR 3)
+  (GLFW/glfwWindowHint GLFW/GLFW_CONTEXT_VERSION_MINOR 3)
+  (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_PROFILE GLFW/GLFW_OPENGL_CORE_PROFILE)
+  ;; required on macOS
+  (GLFW/glfwWindowHint GLFW/GLFW_OPENGL_FORWARD_COMPAT GLFW/GLFW_TRUE)
+  ;; for nanovg
+  (GLFW/glfwWindowHint GLFW/GLFW_STENCIL_BITS 8)
+
 
   ;; create the window and store it in the state
   (let [window (GLFW/glfwCreateWindow initial-window-width initial-window-height "Hello, World!" 0 0)]
@@ -124,10 +134,6 @@
    window
    (reify GLFWFramebufferSizeCallbackI
      (invoke [this win w h]
-       ;; update the GL viewport to cover the new window
-       (GL11/glViewport 0 0 w h)
-       ;; re-build the ortho projection matrix to match the new size
-       (reset-ortho-projection w h)
        ;; let the game respond to window resizing by emitting an event
        (enqueue-event! {:event-type :window-resize
                         :size [w h]}))))
@@ -165,13 +171,15 @@
   ;; creates the GLCapabilities instance and makes the OpenGL bindings
   ;; available for use
   (GL/createCapabilities)
+
+  ;; create a dummy VAO for compatibility stuff?
+  (GL30/glBindVertexArray (GL30/glGenVertexArrays))
+
   state)
 
 (defn init-ortho
-  [{[initial-window-width initial-window-height] :size
-    :as state}]
-  (reset-ortho-projection initial-window-width initial-window-height)
-  state)
+  [state]
+  (reset-ortho-projection state))
 
 (defn init-nanovg
   "Initialise text rendering stuff"
@@ -200,6 +208,10 @@
   [state]
   (assoc state :audio (audio/init-audio)))
 
+(defn init-shaders
+  [state]
+  (assoc state :shader-programs (shader/default-shader-programs)))
+
 (defn init
   [{[initial-window-width initial-window-height] :size
     :as game-config}]
@@ -212,7 +224,8 @@
       init-ortho
       init-nanovg
       init-transparency
-      init-audio))
+      init-audio
+      init-shaders))
 
 (defn draw-background!
   [[r g b a]]
@@ -221,13 +234,23 @@
   ;; clear the frameBuffer
   (GL11/glClear (bit-or GL11/GL_COLOR_BUFFER_BIT GL11/GL_DEPTH_BUFFER_BIT)))
 
+;; this didn't want to live in input since it needs access to
+;; `reset-ortho-projection`
+(defn default-window-resize
+  "Default handler for `:window-resize` events."
+  [state e]
+  (reset-ortho-projection state))
+
 (defn process-event
   [{:keys [current-scene scenes] :as state}
    {:keys [event-type] :as e}]
   (let [scene (get scenes current-scene)
         kw (keyword (str (name event-type) "-fns"))
         applicable-fns (get scene kw)
-        default-fns (get i/default-event-fns kw)]
+        default-fns (get (assoc i/default-event-fns
+                                :window-resize-fns
+                                [default-window-resize])
+                         kw)]
     (reduce (fn [acc f]
               (f acc e))
             state
@@ -309,22 +332,24 @@
     new-state))
 
 (defn draw-preload-progress!
-  [window current total]
+  [{:keys [window] :as state} current total]
   (draw-background! p/black)
   (let [[w h] (u/window-size window)]
     (shape/draw-rect!
+     state
      [(* w 0.1) (* h 0.5)]
      [(* w 0.8) (* h 0.1)]
      p/white)
     (shape/fill-rect!
+     state
      [(* w 0.1) (* h 0.5)]
-     [(* w 0.8 (/ current total)) (* h 0.1)]
+     [(* w 0.8 (max 0.001 (/ current total))) (* h 0.1)]
      p/white))
   (GLFW/glfwSwapBuffers window))
 
 (defn preload-assets!
   "Pre-load assets and display a loading bar"
-  [window
+  [{:keys [window] :as state}
    {audio-assets :audio
     image-assets :image}]
   (draw-background! p/black)
@@ -334,18 +359,17 @@
         total (count assets)
         window-size (u/window-size window)]
     (doseq [[i [f [k path]]] (map-indexed vector assets)]
-      (draw-preload-progress! window i total)
+      (draw-preload-progress! state i total)
       (println (str "Loading " k " from: " path))
       (f k path))))
 
 (defn start!
   [{:keys [init-scenes-fn on-start-fn on-close-fn] :as game}]
   (let [{:keys [window audio assets] :as initialised-lwjgl} (init game)
-        _ (preload-assets! window assets)
+        _ (preload-assets! initialised-lwjgl assets)
         scenes (init-scenes-fn initialised-lwjgl)
         state (merge initialised-lwjgl {:scenes scenes})
         state (on-start-fn state)]
-
     (when-let
         [final-state
          (try

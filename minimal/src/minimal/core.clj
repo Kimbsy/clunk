@@ -46,7 +46,6 @@
     ;; create a dummy VAO for compatibility stuff?
     (GL30/glBindVertexArray (GL30/glGenVertexArrays))
 
-
     ;; set viewport to the window size so NDC maps to pixels
     (GL11/glViewport 0 0 800 600)
 
@@ -62,7 +61,6 @@
       (GL11/glEnable GL11/GL_BLEND)
       (GL30/glBlendFuncSeparate GL11/GL_SRC_ALPHA GL11/GL_ONE_MINUS_SRC_ALPHA GL11/GL_ONE GL11/GL_ONE_MINUS_SRC_ALPHA)
 
-      ;; setting up primitive drawing
       (while (not (GLFW/glfwWindowShouldClose window))
 
         ;; poll for events
