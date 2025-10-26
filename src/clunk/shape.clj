@@ -22,30 +22,17 @@
 
 (def default-line-width 1)
 
-;; @TODO: HERE HERE @TODO:
-
-;; shapes don't seem to be drawing
-
-;; @TODO: huge amount of duplicated code between these functions, just trying to get them to work first
-
-(defn draw-lines!
-  [{:keys [ortho-projection]
+;; @TODO: would be nice to use an EBO to store the triangle indices and save a bunch of duplicated shared vertices
+(defn render-vertices!
+  [{:keys [ortho-projection shader-programs]
     {solid-color-program :solid-color} :shader-programs}
-   lines color &
-   {:keys [line-width]
-    :or {line-width default-line-width}}]
+   [x y] vertices color primitive-mode]
   (let [position-size 3
         vertex-size 3 ;; x,y,z
         ;; a Vertex Buffer Object (VBO) for holding the vertex data
         vbo (GL15/glGenBuffers)
         ;; a Vertex Array Object (VAO) for holding the attributes for the vbo
-        vao (GL30/glGenVertexArrays)
-        ;; add z=0 to the lines and stick all points in a flat float array
-        vertices (->> lines
-                      (apply concat)
-                      (map #(conj % 0))
-                      (apply concat)
-                      float-array)]
+        vao (GL30/glGenVertexArrays)]
 
     ;; @TODO: maybe eventually the vao will be passed in (or grabbed form the sprite)
     ;; bind the vao, now everything following should be inside it
@@ -67,12 +54,16 @@
 
     ;; draw the shape ;;
 
-    ;; everything after this will use our shaders
-    (shader/solid-color color)
+    ;; everything after this will use our solid color shader
+    (shader/use-program solid-color-program)
+    (GL20/glUniform4fv
+     (GL20/glGetUniformLocation solid-color-program "color")
+     (float-array color))
 
-    ;; the lines are given using absolute coords so the model transform uniform is the identity
+    ;; the model transformation matrix handles translation
     (let [model (doto (Matrix4f.)
-                  (.identity))]
+                  (.identity)
+                  (.translate x y 0))]
       (with-open [stack (MemoryStack/stackPush)]
         (let [proj-buf (.mallocFloat stack 16)
               model-buf (.mallocFloat stack 16)
@@ -84,11 +75,24 @@
           (GL20/glUniformMatrix4fv proj-loc false proj-buf)
           (GL20/glUniformMatrix4fv model-loc false model-buf))))
 
-    ;; draw the triangles
-    (GL40/glDrawArrays GL40/GL_LINES 0 (count vertices))
+    ;; draw the primitives
+    (GL40/glDrawArrays primitive-mode 0 (count vertices))
 
     ;; unbind the VAO
     (GL30/glBindVertexArray 0)))
+
+(defn draw-lines!
+  [state lines color &
+   {:keys [line-width]
+    :or {line-width default-line-width}}]
+  ;; add z=0 to the lines and stick all points in a flat float array
+  (let [vertices (->> lines
+                      (apply concat)
+                      (map #(conj % 0))
+                      (apply concat)
+                      float-array)]
+    ;; lines are defined with absolute coords, so our model uniform translation should be the identity transform
+    (render-vertices! state [0 0] vertices color GL40/GL_LINES)))
 
 (defn draw-line!
   [state p1 p2 color & opts]
@@ -102,143 +106,27 @@
   (apply draw-lines! state (partition 2 1 points) color opts))
 
 (defn draw-poly!
-  [{:keys [ortho-projection]
-    {solid-color-program :solid-color} :shader-programs}
-   [x y] poly color &
-   {:keys [line-width]
-    :or {line-width default-line-width}}]
-  (let [position-size 3
-        vertex-size 3 ;; x,y,z
-        ;; a Vertex Buffer Object (VBO) for holding the vertex data
-        vbo (GL15/glGenBuffers)
-        ;; a Vertex Array Object (VAO) for holding the attributes for the vbo
-        vao (GL30/glGenVertexArrays)
-        ;; triangulate the polygon and stick all points in a flat float array
-        tris (u/triangulate poly)
-        vertices (->> tris
-                      (apply concat)
-                      (map #(conj % 0))
-                      (apply concat)
-                      float-array)]
+  [state pos poly color & opts]
+  ;; convert the poly points into lines describing the perimeter
+  (let [lines (->> poly
+                   ;; make all positions absolute
+                   (mapv #(mapv + pos %))
+                   cycle
+                   (take (inc (count poly)))
+                   (partition 2 1))]
+    (apply draw-lines! state lines color opts)))
 
-    ;; @TODO: maybe eventually the vao will be passed in (or grabbed form the sprite)
-    ;; bind the vao, now everything following should be inside it
-    (GL30/glBindVertexArray vao)
-
-    ;; copy the vertex data into the vbo
-    (GL15/glBindBuffer GL15/GL_ARRAY_BUFFER vbo)
-    (GL15/glBufferData GL15/GL_ARRAY_BUFFER vertices GL15/GL_STATIC_DRAW)
-
-    ;; set vertex attribute pointers
-    (GL30/glVertexAttribPointer 0 ;; attribute at location 0 in the shader is position
-                                position-size ;; position is 3 bytes (xyz)
-                                GL15/GL_FLOAT
-                                false
-                                (* vertex-size (Float/BYTES))
-                                0) ;; offset 0 since xyz is at the start of each vertex section
-    ;; enable the vertex attribute
-    (GL30/glEnableVertexAttribArray 0) ;; location 0
-
-    ;; draw the shape ;;
-
-    ;; everything after this will use our shaders
-    (shader/solid-color color)
-
-    ;; draw wireframe rather than fill
-    (GL11/glPolygonMode GL11/GL_FRONT_AND_BACK GL11/GL_LINE)
-
-    ;; the model transformation matrix handles translation
-    (let [model (doto (Matrix4f.)
-                  (.identity)
-                  (.translate x y 0))]
-      (with-open [stack (MemoryStack/stackPush)]
-        (let [proj-buf (.mallocFloat stack 16)
-              model-buf (.mallocFloat stack 16)
-              proj-loc (GL20/glGetUniformLocation solid-color-program "uOrthoProjection")
-              model-loc (GL20/glGetUniformLocation solid-color-program "uModel")]
-          (.get ortho-projection proj-buf)
-          (.get model model-buf)
-          ;; attach the orthographic projection matrix and the model matrix as uniforms
-          (GL20/glUniformMatrix4fv proj-loc false proj-buf)
-          (GL20/glUniformMatrix4fv model-loc false model-buf))))
-
-    ;; draw the triangles
-    (GL40/glDrawArrays GL40/GL_TRIANGLES 0 (count vertices))
-
-    ;; unbind the VAO
-    (GL30/glBindVertexArray 0)
-
-    ;; reset to normal fill mode
-    (GL11/glPolygonMode GL11/GL_FRONT_AND_BACK GL11/GL_FILL)))
-
-;; @TODO: would be nice to use an EBO to store the triangle indices and save a bunch of duplicated shared vertices
 (defn fill-poly!
   "Draw a polygon filled with the specified colour."
-  ;; @TODO: send [x y] pos into the shader
-  ;; @TODO: normalize the poly points somewhere @NOTE: can we do this via the attribute definition? it has a normalize flag.
-  [{:keys [ortho-projection]
-    {solid-color-program :solid-color} :shader-programs}
-   [x y] poly color]
-  (let [position-size 3
-        vertex-size 3 ;; x,y,z
-        ;; a Vertex Buffer Object (VBO) for holding the vertex data
-        vbo (GL15/glGenBuffers)
-        ;; a Vertex Array Object (VAO) for holding the attributes for the vbo
-        vao (GL30/glGenVertexArrays)
-        ;; triangulate the polygon and stick all points in a flat float array
-        tris (u/triangulate poly)
+  [state pos poly color]
+  ;; triangulate the polygon and stick all points in a flat float array
+  (let [tris (u/triangulate poly)
         vertices (->> tris
                       (apply concat)
                       (map #(conj % 0))
                       (apply concat)
                       float-array)]
-
-    ;; @TODO: maybe eventually the vao will be passed in (or grabbed form the sprite)
-    ;; bind the vao, now everything following should be inside it
-    (GL30/glBindVertexArray vao)
-
-    ;; copy the vertex data into the vbo
-    (GL15/glBindBuffer GL15/GL_ARRAY_BUFFER vbo)
-    (GL15/glBufferData GL15/GL_ARRAY_BUFFER vertices GL15/GL_STATIC_DRAW)
-
-    ;; set vertex attribute pointers
-    (GL30/glVertexAttribPointer 0 ;; attribute at location 0 in the shader is position
-                                position-size ;; position is 3 bytes (xyz)
-                                GL15/GL_FLOAT
-                                false
-                                (* vertex-size (Float/BYTES))
-                                0) ;; offset 0 since xyz is at the start of each vertex section
-    ;; enable the vertex attribute
-    (GL30/glEnableVertexAttribArray 0) ;; location 0
-
-    ;; draw the shape ;;
-
-    ;; everything after this will use our shaders
-    (shader/solid-color color)
-
-    ;; uncomment to draw wireframe rather than fill
-    ;; (GL11/glPolygonMode GL11/GL_FRONT_AND_BACK GL11/GL_LINE)
-
-    ;; the model transformation matrix handles translation
-    (let [model (doto (Matrix4f.)
-                  (.identity)
-                  (.translate x y 0))]
-      (with-open [stack (MemoryStack/stackPush)]
-        (let [proj-buf (.mallocFloat stack 16)
-              model-buf (.mallocFloat stack 16)
-              proj-loc (GL20/glGetUniformLocation solid-color-program "uOrthoProjection")
-              model-loc (GL20/glGetUniformLocation solid-color-program "uModel")]
-          (.get ortho-projection proj-buf)
-          (.get model model-buf)
-          ;; attach the orthographic projection matrix and the model matrix as uniforms
-          (GL20/glUniformMatrix4fv proj-loc false proj-buf)
-          (GL20/glUniformMatrix4fv model-loc false model-buf))))
-
-    ;; draw the triangles
-    (GL40/glDrawArrays GL40/GL_TRIANGLES 0 (count vertices))
-
-    ;; unbind the VAO
-    (GL30/glBindVertexArray 0)))
+    (render-vertices! state pos vertices color GL40/GL_TRIANGLES)))
 
 (defn draw-rect!
   [state pos [w h] color & opts]
