@@ -106,15 +106,28 @@
   [state points color & opts]
   (apply draw-lines! state (partition 2 1 points) color opts))
 
+(defn draw-curves!
+  [state curves color & opts]
+  (let [lines (mapcat #(partition 2 1 %) curves)]
+    (apply draw-lines! state lines color opts)))
+
 (defn draw-poly!
   [state pos poly color & opts]
   ;; convert the poly points into lines describing the perimeter
   (let [lines (->> poly
                    ;; make all positions absolute
-                   (mapv #(mapv + pos %))
-                   cycle
-                   (take (inc (count poly)))
-                   (partition 2 1))]
+                   (mapv (partial mapv + pos))
+                   u/poly-lines)]
+    (apply draw-lines! state lines color opts)))
+
+(defn draw-polys!
+  [state poly-data color & opts]
+  (let [lines (mapcat (fn [[pos poly]]
+                        (->> poly
+                             ;; make all positions absolute
+                             (mapv (partial mapv + pos))
+                             u/poly-lines))
+                      poly-data)]
     (apply draw-lines! state lines color opts)))
 
 (defn fill-poly!
@@ -129,6 +142,19 @@
                       float-array)]
     (render-vertices! state pos vertices color GL40/GL_TRIANGLES)))
 
+(defn fill-polys!
+  "Draw a collection of polygons filled with the same color."
+  [state poly-data color]
+  (let [tris (mapcat (fn [[pos poly]]
+                       (u/triangulate (mapv (partial mapv + pos) poly)))
+                     poly-data)
+        vertices (->> tris
+                      (apply concat)
+                      (map #(conj % 0))
+                      (apply concat)
+                      float-array)]
+    (render-vertices! state [0 0] vertices color GL40/GL_TRIANGLES)))
+
 (defn draw-rect!
   [state pos [w h] color & opts]
   (apply draw-poly!
@@ -141,6 +167,17 @@
          color
          opts))
 
+(defn draw-rects!
+  [state rect-data color & opts]
+  (let [poly-data (mapv (fn [[pos [w h]]]
+                          [pos
+                           [[0 0]
+                            [0 h]
+                            [w h]
+                            [w 0]]])
+                        rect-data)]
+    (draw-polys! state poly-data color)))
+
 (defn fill-rect!
   [state pos [w h] color]
   (fill-poly! state
@@ -151,10 +188,35 @@
                [w 0]]
               color))
 
+(defn fill-rects!
+  [state rect-data color]
+  (let [poly-data (mapv (fn [[pos [w h]]]
+                          [pos
+                           [[0 0]
+                            [0 h]
+                            [w h]
+                            [w 0]]])
+                        rect-data)]
+    (fill-polys! state poly-data color)))
+
 (defn draw-ellipse!
   [state pos size color & opts]
   (apply draw-poly! state pos (u/ellipse-points size) color opts))
 
+(defn draw-ellipses!
+  [state ellipse-data color & opts]
+  (let [poly-data (mapv (fn [[pos size]]
+                          [pos (u/ellipse-points size)])
+                        ellipse-data)]
+    (apply draw-polys! state poly-data color opts)))
+
 (defn fill-ellipse!
   [state pos size color]
   (fill-poly! state pos (u/ellipse-points size) color))
+
+(defn fill-ellipses!
+  [state ellipse-data color]
+  (let [poly-data (mapv (fn [[pos size]]
+                          [pos (u/ellipse-points size)])
+                        ellipse-data)]
+    (fill-polys! state poly-data color)))
