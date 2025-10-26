@@ -81,6 +81,7 @@
     ;; unbind the VAO
     (GL30/glBindVertexArray 0)))
 
+;; @TODO: supporting line width is not trivial, might need a geometry shader, or to render each line as a quad
 (defn draw-lines!
   [state lines color &
    {:keys [line-width]
