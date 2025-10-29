@@ -22,6 +22,16 @@ lein new com.kimbsy/clunk my-game
 
 Take a look at the games in the [examples](/examples) directory, these simple games demonstrate various clunk features.
 
+### MacOS support
+
+If you're developing a game using MacOS, make sure you uncomment the line in `project.clj` to enable the `XstartOnFirstThread` JVM option.
+
+When running a compiled jar on MacOS, make sure you run it with the `-XstartOnFirstThread` option.
+
+``` Bash
+java -jar -XstartOnFirstThread my-game.jar
+```
+
 ## Getting started slowly
 
 To make a simple game start with the `clunk.core/game` function and run it with `clunk.core/start!`:
