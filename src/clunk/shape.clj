@@ -22,11 +22,14 @@
 
 (def default-line-width 1)
 
+;; @TODO: pass in a shader program to the render function, that way we can upload uniforms beforehand?
+
+;; write a shader for drawing lines with thickness
+
 ;; @TODO: would be nice to use an EBO to store the triangle indices and save a bunch of duplicated shared vertices
 (defn render-vertices!
-  [{:keys [ortho-projection shader-programs]
-    {solid-color-program :solid-color} :shader-programs}
-   [x y] vertices color primitive-mode]
+  [{:keys [ortho-projection]}
+   [x y] vertices color primitive-mode shader-program]
   (let [position-size 3
         vertex-size 3 ;; x,y,z
         ;; a Vertex Buffer Object (VBO) for holding the vertex data
@@ -54,26 +57,28 @@
 
     ;; draw the shape ;;
 
-    ;; everything after this will use our solid color shader
-    (shader/use-program solid-color-program)
-    (GL20/glUniform4fv
-     (GL20/glGetUniformLocation solid-color-program "color")
-     (float-array color))
-
+    ;; @TODO: support rotation and scale
     ;; the model transformation matrix handles translation
     (let [model (doto (Matrix4f.)
                   (.identity)
                   (.translate x y 0))]
       (with-open [stack (MemoryStack/stackPush)]
-        (let [proj-buf (.mallocFloat stack 16)
-              model-buf (.mallocFloat stack 16)
-              proj-loc (GL20/glGetUniformLocation solid-color-program "uOrthoProjection")
-              model-loc (GL20/glGetUniformLocation solid-color-program "uModel")]
-          (.get ortho-projection proj-buf)
-          (.get model model-buf)
-          ;; attach the orthographic projection matrix and the model matrix as uniforms
-          (GL20/glUniformMatrix4fv proj-loc false proj-buf)
-          (GL20/glUniformMatrix4fv model-loc false model-buf))))
+        ;; check if our shader program needs a ortho projection uniform
+        (let [proj-loc (GL20/glGetUniformLocation shader-program "uOrthoProjection")]
+          (when (not= proj-loc -1)
+            (let [proj-buf (.mallocFloat stack 16)]
+              ;; load the projection matrix into the buffer
+              (.get ortho-projection proj-buf)
+              ;; upload to the shader program
+              (GL20/glUniformMatrix4fv proj-loc false proj-buf))))
+        ;; check if our shader program needs a model uniform
+        (let [model-loc (GL20/glGetUniformLocation shader-program "uModel")]
+          (when (not= model-loc -1)
+            (let [model-buf (.mallocFloat stack 16)]
+              ;; load the model matrix into the buffer
+              (.get model model-buf)
+              ;; upload to the shader program
+              (GL20/glUniformMatrix4fv model-loc false model-buf))))))
 
     ;; draw the primitives
     (GL40/glDrawArrays primitive-mode 0 (count vertices))
@@ -81,9 +86,11 @@
     ;; unbind the VAO
     (GL30/glBindVertexArray 0)))
 
+;; @TODO: THIS ONE NEXT
 ;; @TODO: supporting line width is not trivial, might need a geometry shader, or to render each line as a quad
 (defn draw-lines!
-  [state lines color &
+  [{:keys [shader-programs] :as state}
+   lines color &
    {:keys [line-width]
     :or {line-width default-line-width}}]
   ;; add z=0 to the lines and stick all points in a flat float array
@@ -91,9 +98,11 @@
                       (apply concat)
                       (map #(conj % 0))
                       (apply concat)
-                      float-array)]
+                      float-array)
+        ;; activate shader, upload colour and line-width uniforms
+        line-shader (shader/use-line-shader state color line-width)]
     ;; lines are defined with absolute coords, so our model uniform translation should be the identity transform
-    (render-vertices! state [0 0] vertices color GL40/GL_LINES)))
+    (render-vertices! state [0 0] vertices color GL11/GL_LINES line-shader)))
 
 (defn draw-line!
   [state p1 p2 color & opts]
@@ -132,19 +141,23 @@
 
 (defn fill-poly!
   "Draw a polygon filled with the specified colour."
-  [state pos poly color]
+  [{:keys [shader-programs] :as state}
+   pos poly color]
   ;; triangulate the polygon and stick all points in a flat float array
   (let [tris (u/triangulate poly)
         vertices (->> tris
                       (apply concat)
                       (map #(conj % 0))
                       (apply concat)
-                      float-array)]
-    (render-vertices! state pos vertices color GL40/GL_TRIANGLES)))
+                      float-array)
+        ;; activate shader, upload color uniform
+        solid-poly-shader (shader/use-solid-poly-shader state color)]
+    (render-vertices! state pos vertices color GL40/GL_TRIANGLES solid-poly-shader)))
 
 (defn fill-polys!
   "Draw a collection of polygons filled with the same color."
-  [state poly-data color]
+  [{:keys [shader-programs] :as state}
+   poly-data color]
   (let [tris (mapcat (fn [[pos poly]]
                        (u/triangulate (mapv (partial mapv + pos) poly)))
                      poly-data)
@@ -152,8 +165,10 @@
                       (apply concat)
                       (map #(conj % 0))
                       (apply concat)
-                      float-array)]
-    (render-vertices! state [0 0] vertices color GL40/GL_TRIANGLES)))
+                      float-array)
+        ;; activate shader, upload color uniform
+        solid-poly-shader (shader/use-solid-poly-shader state color)]
+    (render-vertices! state [0 0] vertices color GL40/GL_TRIANGLES solid-poly-shader)))
 
 (defn draw-rect!
   [state pos [w h] color & opts]

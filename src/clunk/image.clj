@@ -71,7 +71,7 @@
    (draw-bound-texture-quad state pos parent-dims [0 0] parent-dims rotation))
   ;; draw a subsection of the image
   ([{:keys [ortho-projection]
-     {texture-program :texture} :shader-programs}
+     :as state}
     [pos-x pos-y] [parent-w parent-h] [off-x off-y] [draw-w draw-h] rotation]
    (let [position-size 3
          tex-coord-size 2
@@ -132,10 +132,10 @@
      ;; draw the image ;;
 
      ;; everything after this will use our texture shader program
-     (shader/use-program texture-program)
-
-     ;; the model transformation matrix handles translation, rotation and scaling (which we don't have yet)
-     (let [model (doto (Matrix4f.)
+     (let [texture-program (shader/use-texture-shader state)
+           ;; the model transformation matrix handles translation,
+           ;; rotation and scaling (which we don't have yet)
+           model (doto (Matrix4f.)
                    (.identity)
                    (.translate pos-x pos-y 0)
                    (.rotate (math/to-radians rotation) 0 0 1)

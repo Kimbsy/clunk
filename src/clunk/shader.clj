@@ -1,6 +1,7 @@
 (ns clunk.shader
-  (:require [clojure.java.io :as io])
-  (:import (org.lwjgl.opengl GL20)
+  (:require [clojure.java.io :as io]
+            [clunk.util :as u])
+  (:import (org.lwjgl.opengl GL20 GL32)
            (org.lwjgl.system MemoryStack)))
 
 (defn- report-compilation-errors
@@ -27,11 +28,14 @@
 
 (defn program
   "Create a shader program from a vertex shader filepath and fragment shader filepath."
-  [vertex-shader-path fragment-shader-path]
+  [vertex-shader-path fragment-shader-path
+   & {:keys [geometry-shader-path]}]
   (let [vertex-source (slurp (io/resource vertex-shader-path))
         fragment-source (slurp (io/resource fragment-shader-path))
         vertex-shader (GL20/glCreateShader GL20/GL_VERTEX_SHADER)
         fragment-shader (GL20/glCreateShader GL20/GL_FRAGMENT_SHADER)
+        geometry-source (when geometry-shader-path (slurp (io/resource geometry-shader-path)))
+        geometry-shader (when geometry-shader-path (GL20/glCreateShader GL32/GL_GEOMETRY_SHADER))
         shader-program (GL20/glCreateProgram)]
 
     ;; set the source for the vertex shader and compile it
@@ -48,9 +52,19 @@
     ;; report any compilation issues
     (report-compilation-errors fragment-shader fragment-shader-path)
 
+    (when geometry-shader-path
+      ;; set the source for the geometry shader and compile it
+      (GL20/glShaderSource geometry-shader geometry-source)
+      (GL20/glCompileShader geometry-shader)
+
+      ;; report any compilation issues
+      (report-compilation-errors geometry-shader geometry-shader-path))
+
     ;; attach the shaders to the program and then link them
     (GL20/glAttachShader shader-program vertex-shader)
     (GL20/glAttachShader shader-program fragment-shader)
+    (when geometry-shader-path
+      (GL20/glAttachShader shader-program geometry-shader))
     (GL20/glLinkProgram shader-program)
 
     ;; report any linking issues
@@ -59,47 +73,56 @@
     ;; delete the shaders now they're in the program
     (GL20/glDeleteShader vertex-shader)
     (GL20/glDeleteShader fragment-shader)
+    (when geometry-shader-path
+      (GL20/glDeleteShader geometry-shader))
 
-    ;;return the program
+    ;; return the program
     shader-program))
-
-;; @TODO: this could be more robust, handle errors and support non-scalar uniforms
-;; (defn set-uniform
-;;   [shader-program uniform-name value]
-;;   (case (type value)
-;;     (java.lang.Long java.lang.Integer)
-;;     (GL20/glUniform1i
-;;      (GL20/glGetUniformLocation shader-program uniform-name)
-;;      (int value))
-
-;;     java.lang.Boolean
-;;     (GL20/glUniform1i
-;;      (GL20/glGetUniformLocation shader-program uniform-name)
-;;      (if value (int 1) (int 0)))
-
-;;     (java.lang.Double java.lang.Float)
-;;     (GL20/glUniform1f
-;;      (GL20/glGetUniformLocation shader-program uniform-name)
-;;      (float value))))
-
 
 (defn use-program
   [shader-program]
   (GL20/glUseProgram shader-program))
 
-;; @TODO: we should create these default shaders when the game inits, this will compile the shader every frame
-(defn solid-color
-  [color]
-  (let [solid-color-program (program "shader/solid-color.vert" "shader/solid-color.frag")]
-    ;; need to use the program first for our uniform setting to apply to it
-    (use-program solid-color-program)
-    (GL20/glUniform4fv
-     (GL20/glGetUniformLocation solid-color-program "color")
-     (float-array color))))
-
 (defn default-shader-programs
   "These shader programs need an orthographic projection matrix and a
   model matrix supplied as uniforms."
   []
-  {:solid-color (program "shader/solid-color.vert" "shader/solid-color.frag")
-   :texture (program "shader/texture.vert" "shader/texture.frag")})
+  {::line (program "shader/line.vert" "shader/line.frag" :geometry-shader-path "shader/line.geom")
+   ::solid-poly (program "shader/solid-poly.vert" "shader/solid-poly.frag")
+   ::texture (program "shader/texture.vert" "shader/texture.frag")})
+
+(defn use-line-shader
+  [{:keys [window] :as state} color line-width]
+  (let [p (get-in state [:shader-programs ::line])
+        window-size (u/window-size window)]
+    (use-program p)
+    ;; upload shader-specific uniforms
+    (GL20/glUniform4fv
+     (GL20/glGetUniformLocation p "uColor")
+     (float-array color))
+    (GL20/glUniform2fv
+     (GL20/glGetUniformLocation p "uViewport")
+     (float-array window-size))
+    (GL20/glUniform1f
+     (GL20/glGetUniformLocation p "uThickness")
+     (float line-width))
+    ;; return the shader program
+    p))
+
+(defn use-solid-poly-shader
+  [state color]
+  (let [p (get-in state [:shader-programs ::solid-poly])]
+    (use-program p)
+    ;; upload shader-specific uniforms
+    (GL20/glUniform4fv
+     (GL20/glGetUniformLocation p "uColor")
+     (float-array color))
+    ;; return the shader program
+    p))
+
+(defn use-texture-shader
+  [state]
+  (let [p (get-in state [:shader-programs ::texture])]
+    (use-program p)
+    ;; return the shader program
+    p))
