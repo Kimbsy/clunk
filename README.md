@@ -20,11 +20,41 @@ Create a new game using the Leiningen template:
 lein new com.kimbsy/clunk my-game
 ```
 
+This will create a game project containing two scenes, `menu` and `level-01`.
+
+You can run your game locally with Leiningen:
+
+``` bash
+lein run
+```
+
+Or from the repl:
+
+``` Clojure
+(-main)
+```
+
+You can build your game as a .jar for distribution.
+
+``` bash
+# build
+lein uberjar
+
+# run
+java -jar target/uberjar/my-game-0.1.0-standalone.jar
+```
+
 Take a look at the games in the [examples](/examples) directory, these simple games demonstrate various clunk features.
 
-### MacOS support
+### ⚠️ MacOS support
 
-If you're developing a game using MacOS, make sure you uncomment the line in `project.clj` to enable the `XstartOnFirstThread` JVM option.
+If you're developing a game using MacOS and have used the Leiningen template, make sure you enable the `XstartOnFirstThread` JVM option in your `project.clj`.
+
+``` Clojure
+  :target-path "target/%s"
+  :jvm-opts ["-XstartOnFirstThread"]  ;; <- this bit
+  :profiles {:uberjar {:aot :all
+```
 
 When running a compiled jar on MacOS, make sure you run it with the `-XstartOnFirstThread` option.
 
