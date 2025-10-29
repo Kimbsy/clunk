@@ -21,9 +21,6 @@
                     [80 500]
                     :vel [3 3]
                     :color p/green
-                    ;; the default size is [20 20] so we shift the
-                    ;; bounding poly points by half otherwise they
-                    ;; center on the top-left corner of the sprite.
                     :points (u/ellipse-points [60 60] :num-points 8)
                     :size [60 60]
                     :debug? true

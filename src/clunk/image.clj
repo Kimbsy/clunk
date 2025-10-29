@@ -72,7 +72,7 @@
   ;; draw a subsection of the image
   ([{:keys [ortho-projection]
      :as state}
-    [pos-x pos-y] [parent-w parent-h] [off-x off-y] [draw-w draw-h] rotation]
+    [x y] [parent-w parent-h] [off-x off-y] [draw-w draw-h] rotation]
    (let [position-size 3
          tex-coord-size 2
          vertex-size 5 ;; x,y,z,tx,ty
@@ -137,8 +137,10 @@
            ;; rotation and scaling (which we don't have yet)
            model (doto (Matrix4f.)
                    (.identity)
-                   (.translate pos-x pos-y 0)
+                   (.translate x y 0)
+                   (.translate (/ draw-w 2) (/ draw-h 2) 0)
                    (.rotate (math/to-radians rotation) 0 0 1)
+                   (.translate (- (/ draw-w 2)) (- (/ draw-h 2)) 0)
                    (.scale draw-w draw-h 1))]
        (with-open [stack (MemoryStack/stackPush)]
          (let [proj-buf (.mallocFloat stack 16)
