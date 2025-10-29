@@ -9,9 +9,10 @@
   sprite."
   [{[w h] :size}]
   [[0 0]
-   [w 0]
+   [0 h]
    [w h]
-   [0 h]])
+   [w 0]
+   ])
 
 (defn pos-offsets
   "Determine the x and y offsets for a sprite based on it's `:w`, `:h`
@@ -67,37 +68,43 @@
 
 (defn draw-default-sprite!
   "Draw a green square as a sprite placeholder."
-  [{:keys [pos size color] :as s}]
+  [state
+   {:keys [pos size color] :as s}]
   (let [offsets (pos-offsets s)]
-    (shape/fill-rect! (map + pos offsets) size color)))
+    (shape/fill-rect! state (map + pos offsets) size color)))
 
 (defn draw-bounds
-  [{:keys [pos debug-color bounds-fn] :as s}]
+  [state
+   {:keys [pos debug-color bounds-fn] :as s}]
   (let [offsets (pos-offsets s)
         points (bounds-fn s)]
-    (shape/draw-poly! (map + pos offsets) points debug-color)))
+    (shape/draw-poly! state (map + pos offsets) points debug-color)))
 
 (defn draw-center
-  [{[x y] :pos
+  [state
+   {[x y] :pos
     color :debug-color}]
-  (shape/draw-rect! [(- x 20) y] [40 2] color)
-  (shape/draw-rect! [x (- y 20)] [2 40] color))
+  (shape/draw-rect! state [(- x 20) y] [40 2] color)
+  (shape/draw-rect! state [x (- y 20)] [2 40] color))
 
 (defn draw-geometry-sprite!
-  [{:keys [pos size points color fill? line-width] :as s}]
+  [state
+   {:keys [pos size points color fill? line-width] :as s}]
   (let [offsets (pos-offsets s)
         offset-pos (map + pos offsets)]
     (if fill?
-      (shape/fill-poly! offset-pos points color)
-      (shape/draw-poly! offset-pos points color :line-width line-width))))
+      (shape/fill-poly! state offset-pos points color)
+      (shape/draw-poly! state offset-pos points color :line-width line-width))))
 
 (defn draw-image-sprite!
-  [{:keys [pos size image-texture rotation] :as s}]
+  [state
+   {:keys [pos size image-texture rotation] :as s}]
   (let [offsets (pos-offsets s)]
-    (image/draw-image! image-texture (map + pos offsets) size rotation)))
+    (image/draw-image! state image-texture (map + pos offsets) size rotation)))
 
 (defn draw-animated-sprite!
-  [{:keys [pos
+  [state
+   {:keys [pos
            spritesheet-texture
            spritesheet-size
            current-animation
@@ -109,7 +116,8 @@
         sheet-x-offset  (* animation-frame w)
         sheet-y-offset  (* (:y-offset animation) h)
         offsets (pos-offsets s)]
-    (image/draw-sub-image! spritesheet-texture
+    (image/draw-sub-image! state
+                           spritesheet-texture
                            (map + pos offsets)
                            spritesheet-size
                            [sheet-x-offset
@@ -140,7 +148,6 @@
            points
            bounds-fn
            offsets
-           draw-requires-state?
            debug?
            debug-color
            extra]
@@ -150,7 +157,6 @@
          update-fn update-pos
          draw-fn draw-default-sprite!
          offsets [:center]
-         draw-requires-state? false
          debug? false
          debug-color p/red
          extra {}}}]
@@ -168,7 +174,6 @@
                    (if (seq points)
                      :points
                      default-bounding-poly))
-    :draw-requires-state? draw-requires-state?
     :debug? debug?
     :debug-color debug-color
     :offsets offsets}
@@ -362,8 +367,7 @@
          extra {}}}]
   (merge
    (sprite sprite-group pos)
-   {:draw-requires-state? true
-    :content content
+   {:content content
     :font font
     :font-size font-size
     ;; @TODO: collision bounds for text are more complex than
@@ -400,13 +404,11 @@
     :as state}]
   (let [sprites (get-in state [:scenes current-scene :sprites])]
     (doall
-     (map (fn [{:keys [draw-fn debug? draw-requires-state?] :as s}]
-            (if draw-requires-state?
-              (draw-fn state s)
-              (draw-fn s))
+     (map (fn [{:keys [draw-fn debug?] :as s}]
+            (draw-fn state s)
             (when (or global-debug? debug?)
-              (draw-bounds s)
-              (draw-center s)))
+              (draw-bounds state s)
+              (draw-center state s)))
           sprites))))
 
 (defn update-sprites

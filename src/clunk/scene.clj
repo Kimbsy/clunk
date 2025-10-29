@@ -13,6 +13,7 @@
     (do
       (c/draw-game! (assoc state :current-scene current-scene))
       (shape/fill-rect!
+       state
        [0 0]
        (u/window-size window)
        [0 0 0 (float (/ (* 2 i) transition-length))])
@@ -20,6 +21,7 @@
     (do
       (c/draw-game! (assoc state :current-scene target))
       (shape/fill-rect!
+       state
        [0 0]
        (u/window-size window)
        [0 0 0 (float (/ (* 2 (- transition-length i)) transition-length))])

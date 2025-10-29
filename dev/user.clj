@@ -190,7 +190,7 @@
         c1 [(rand-int w) (rand-int h)]
         c2 [(rand-int w) (rand-int h)]
         end [900 400]]
-    (shape/draw-curve! (u/bezier-curve start c1 c2 end) (p/hex->rgba "#FF9B85")
+    (shape/draw-curve! state (u/bezier-curve start c1 c2 end) (p/hex->rgba "#FF9B85")
                        :line-width 8
                        :foo 42)))
 
@@ -268,6 +268,7 @@
 
 (defn init-scenes
   [state]
+  (prn "init scenes")
   {:demo {:sprites (sprites state)
           :colliders (colliders)
           :update-fn update-demo
