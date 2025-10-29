@@ -22,10 +22,6 @@
 
 (def default-line-width 1)
 
-;; @TODO: pass in a shader program to the render function, that way we can upload uniforms beforehand?
-
-;; write a shader for drawing lines with thickness
-
 ;; @TODO: would be nice to use an EBO to store the triangle indices and save a bunch of duplicated shared vertices
 (defn render-vertices!
   [{:keys [ortho-projection]}
@@ -86,8 +82,6 @@
     ;; unbind the VAO
     (GL30/glBindVertexArray 0)))
 
-;; @TODO: THIS ONE NEXT
-;; @TODO: supporting line width is not trivial, might need a geometry shader, or to render each line as a quad
 (defn draw-lines!
   [{:keys [shader-programs] :as state}
    lines color &

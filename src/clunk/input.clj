@@ -7,7 +7,7 @@
 (def RELEASE GLFW/GLFW_RELEASE)
 (def REPEAT GLFW/GLFW_REPEAT)
 
-;; @TODO: support mods
+;; @TODO: support modifier keys
 
 (def M_1 GLFW/GLFW_MOUSE_BUTTON_1)
 (def M_2 GLFW/GLFW_MOUSE_BUTTON_2)
