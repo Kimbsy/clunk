@@ -241,7 +241,8 @@
              on-yoyo-fn
              repeat-times
              on-repeat-fn
-             on-complete-fn]
+             on-complete-fn
+             initial-delay]
       :or {from-value 0
            easing-fn ease-linear
            update-fn +
@@ -251,7 +252,8 @@
            on-yoyo-fn identity
            repeat-times 1
            on-repeat-fn identity
-           on-complete-fn identity}}]
+           on-complete-fn identity
+           initial-delay 0}}]
   {:field field
    :total-change (- to-value from-value)
    :normalized-deltas (normalized-deltas easing-fn step-count)
@@ -266,7 +268,8 @@
    :repeat-times (max 1 repeat-times)
    :on-repeat-fn on-repeat-fn
    :completed? false
-   :on-complete-fn on-complete-fn})
+   :on-complete-fn on-complete-fn
+   :initial-delay initial-delay})
 
 (defn add-tween
   [{:keys [tweens] :as sprite} tween]
@@ -284,26 +287,29 @@
           (update % :repeat-times dec)))))
 
 (defn update-tween
-  [{:keys [progress step-count yoyo? yoyoing? repeat-times] :as tween}]
+  [{:keys [initial-delay progress step-count yoyo? yoyoing? repeat-times] :as tween}]
   (let [tween (dissoc tween :resetting?)]
-    (when (<= 1 repeat-times)
-      (if yoyo?
-        (if yoyoing?
-          (if (zero? progress)
-            (-> tween
-                (assoc :yoyoing? false)
-                complete-repetition)
-            (update tween :progress dec))
+    (if (pos? initial-delay)
+      (update tween :initial-delay dec)
+      (when (<= 1 repeat-times)
+        (if yoyo?
+          (if yoyoing?
+            (if (zero? progress)
+              (-> tween
+                  (assoc :yoyoing? false)
+                  complete-repetition)
+              (update tween :progress dec))
+            (if (= (inc progress) step-count)
+              (assoc tween :yoyoing? true)
+              (update tween :progress inc)))
           (if (= (inc progress) step-count)
-            (assoc tween :yoyoing? true)
-            (update tween :progress inc)))
-        (if (= (inc progress) step-count)
-          (complete-repetition tween)
-          (update tween :progress inc))))))
+            (complete-repetition tween)
+            (update tween :progress inc)))))))
 
 (defn apply-tween
   [sprite
-   {:keys [field
+   {:keys [initial-delay
+           field
            update-fn
            yoyo?
            yoyoing?
@@ -315,14 +321,16 @@
   (update sprite
           field
           (fn [v]
-            (let [f (if yoyoing?
-                      yoyo-update-fn
-                      update-fn)
-                  value (if (and resetting?
-                                 (not yoyo?))
-                          (f v (- total-change))
-                          v)]
-              (f value (* total-change (nth normalized-deltas progress)))))))
+            (if (pos? initial-delay)
+              v
+              (let [f (if yoyoing?
+                        yoyo-update-fn
+                        update-fn)
+                    value (if (and resetting?
+                                   (not yoyo?))
+                            (f v (- total-change))
+                            v)]
+                (f value (* total-change (nth normalized-deltas progress))))))))
 
 (defn update-sprite
   [{:keys [tweens] :as sprite}]
