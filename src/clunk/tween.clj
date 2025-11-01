@@ -241,6 +241,7 @@
              on-yoyo-fn
              repeat-times
              on-repeat-fn
+             on-repeat-delay
              on-complete-fn
              initial-delay]
       :or {from-value 0
@@ -252,6 +253,7 @@
            on-yoyo-fn identity
            repeat-times 1
            on-repeat-fn identity
+           on-repeat-delay 0
            on-complete-fn identity
            initial-delay 0}}]
   {:field field
@@ -267,9 +269,10 @@
    :on-yoyo-fn on-yoyo-fn
    :repeat-times (max 1 repeat-times)
    :on-repeat-fn on-repeat-fn
+   :on-repeat-delay on-repeat-delay
    :completed? false
    :on-complete-fn on-complete-fn
-   :initial-delay initial-delay})
+   :delay initial-delay})
 
 (defn add-tween
   [{:keys [tweens] :as sprite} tween]
@@ -278,19 +281,20 @@
     (assoc sprite :tweens [tween])))
 
 (defn complete-repetition
-  [{:keys [repeat-times resetting?] :as tween}]
+  [{:keys [repeat-times on-repeat-delay resetting?] :as tween}]
   (-> tween
       (assoc :progress 0)
       (assoc :resetting? true)
+      (assoc :delay on-repeat-delay)
       (#(if (<= repeat-times 1)
           (assoc % :completed? true)
           (update % :repeat-times dec)))))
 
 (defn update-tween
-  [{:keys [initial-delay progress step-count yoyo? yoyoing? repeat-times] :as tween}]
+  [{:keys [delay progress step-count yoyo? yoyoing? repeat-times] :as tween}]
   (let [tween (dissoc tween :resetting?)]
-    (if (pos? initial-delay)
-      (update tween :initial-delay dec)
+    (if (pos? delay)
+      (update tween :delay dec)
       (when (<= 1 repeat-times)
         (if yoyo?
           (if yoyoing?
@@ -308,7 +312,7 @@
 
 (defn apply-tween
   [sprite
-   {:keys [initial-delay
+   {:keys [delay
            field
            update-fn
            yoyo?
@@ -321,7 +325,7 @@
   (update sprite
           field
           (fn [v]
-            (if (pos? initial-delay)
+            (if (pos? delay)
               v
               (let [f (if yoyoing?
                         yoyo-update-fn

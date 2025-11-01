@@ -54,6 +54,9 @@
   to calculate the expected number of frames processed in a given
   millisecond time interval.
 
+  We can specify a number of frames to wait before starting the tween
+  with the `:initial-delay` option.
+
   We can specify `:on-<x>-fn` functions to modify the sprite when it
   `repeat`s, `yoyo`s or `complete`s."
   []
@@ -74,7 +77,8 @@
                              (sprite/set-animation s :jump))
                :on-complete-fn (fn [s]
                                  (prn "COMPLETE!")
-                                 (sprite/set-animation s :idle))))
+                                 (sprite/set-animation s :idle))
+               :initial-delay 10))
 
 (defn random-pos-tween
   "Creates a non-repeating yoyoing tween which chooses a random axis and
