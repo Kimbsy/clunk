@@ -22,10 +22,10 @@
 
 (def default-line-width 1)
 
-;; @TODO: would be nice to use an EBO to store the triangle indices and save a bunch of duplicated shared vertices
-(defn render-vertices!
-  [{:keys [ortho-projection]}
-   [x y] vertices color primitive-mode shader-program]
+(defn init-shape-rendering
+  "Create a VAO and VBO with default vertex config which we can reuse
+  for lines and polygons."
+  [state]
   (let [position-size 3
         vertex-size 3 ;; x,y,z
         ;; a Vertex Buffer Object (VBO) for holding the vertex data
@@ -33,12 +33,23 @@
         ;; a Vertex Array Object (VAO) for holding the attributes for the vbo
         vao (GL30/glGenVertexArrays)]
 
+    (-> state
+        (assoc :shape-vao vao)
+        (assoc :shape-vbo vbo))))
+
+;; @TODO: would be nice to use an EBO to store the triangle indices and save a bunch of duplicated shared vertices
+(defn render-vertices!
+  [{:keys [ortho-projection shape-vao shape-vbo]}
+   [x y] vertices color primitive-mode shader-program]
+  (let [position-size 3
+        vertex-size 3]
+
     ;; @TODO: maybe eventually the vao will be passed in (or grabbed form the sprite)
     ;; bind the vao, now everything following should be inside it
-    (GL30/glBindVertexArray vao)
+    (GL30/glBindVertexArray shape-vao)
 
     ;; copy the vertex data into the vbo
-    (GL15/glBindBuffer GL15/GL_ARRAY_BUFFER vbo)
+    (GL15/glBindBuffer GL15/GL_ARRAY_BUFFER shape-vbo)
     (GL15/glBufferData GL15/GL_ARRAY_BUFFER vertices GL15/GL_STATIC_DRAW)
 
     ;; set vertex attribute pointers
@@ -188,25 +199,32 @@
     (draw-polys! state poly-data color)))
 
 (defn fill-rect!
-  [state pos [w h] color]
-  (fill-poly! state
-              pos
-              [[0 0]
-               [0 h]
-               [w h]
-               [w 0]]
-              color))
+  [{:keys [shader-programs] :as state} pos [w h] color]
+  ;; triangulate the polygon and stick all points in a flat float array
+  (let [vertices (float-array [0 0 0
+                               0 h 0
+                               w h 0
+                               w h 0
+                               w 0 0
+                               0 0 0])
+        ;; activate shader, upload color uniform
+        solid-poly-shader (shader/use-solid-poly-shader state color)]
+    (render-vertices! state pos vertices color GL40/GL_TRIANGLES solid-poly-shader)))
 
 (defn fill-rects!
   [state rect-data color]
-  (let [poly-data (mapv (fn [[pos [w h]]]
-                          [pos
-                           [[0 0]
-                            [0 h]
-                            [w h]
-                            [w 0]]])
-                        rect-data)]
-    (fill-polys! state poly-data color)))
+  (let [;; activate shader, upload color uniform
+        solid-poly-shader (shader/use-solid-poly-shader state color)
+        vertices (float-array
+                  (mapcat (fn [[[x y] [w h]]]
+                            [x y 0
+                             x (+ y h) 0
+                             (+ x w) (+ y h) 0
+                             (+ x w) (+ y h) 0
+                             (+ x w) y 0
+                             x y 0])
+                          rect-data))]
+    (render-vertices! state [0 0] vertices color GL40/GL_TRIANGLES solid-poly-shader)))
 
 (defn draw-ellipse!
   [state pos size color & opts]
