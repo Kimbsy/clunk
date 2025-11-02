@@ -53,6 +53,19 @@
 
 (def centre center)
 
+(defn mouse-pos
+  "Get the current `[x y]` position of the mouse cursor."
+  [window]
+  (with-open [stack (MemoryStack/stackPush)]
+    ;; allocate two IntBuffers of size 1 each
+    (let [p-x (.mallocDouble stack 1)
+          p-y (.mallocDouble stack 1)]
+      ;; get the cursorPos info
+      (GLFW/glfwGetCursorPos window p-x p-y)
+      ;; extract the values from the IntBuffers
+      [(.get p-x 0)
+       (.get p-y 0)])))
+
 ;;; Vector helpers
 
 (defn zero-vector?
