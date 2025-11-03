@@ -13,6 +13,23 @@
 
 (def textures (atom {}))
 
+(defn init-image-rendering
+  "Create a VAO and VBO with default vertex config which we can reuse
+  for image textures."
+  [state]
+  (let [position-size 3
+        vertex-size 3 ;; x,y,z
+        ;; a Vertex Buffer Object (VBO) for holding the vertex data
+        vbo (GL15/glGenBuffers)
+        ;; a Vertex Array Object (VAO) for holding the attributes for the vbo
+        vao (GL30/glGenVertexArrays)
+        ;; an Element Array Buffer (EBO) for storing the indices of our vertices
+        ebo (GL15/glGenBuffers)]
+    (-> state
+        (assoc :image-vao vao)
+        (assoc :image-vbo vbo)
+        (assoc :image-ebo ebo))))
+
 ;; @TODO: would be nice to be able to flip in x or y when drawing images
 
 (defn load-texture!
@@ -67,21 +84,15 @@
 
 (defn draw-bound-texture-quad
   ;; draw the whole image
-  ([state pos parent-dims rotation]
+  ([state pos parent-dims rotation texture-program]
    (draw-bound-texture-quad state pos parent-dims [0 0] parent-dims rotation))
   ;; draw a subsection of the image
-  ([{:keys [ortho-projection]
+  ([{:keys [ortho-projection image-vbo image-vao image-ebo]
      :as state}
-    [x y] [parent-w parent-h] [off-x off-y] [draw-w draw-h] rotation]
+    [x y] [parent-w parent-h] [off-x off-y] [draw-w draw-h] rotation texture-program]
    (let [position-size 3
          tex-coord-size 2
          vertex-size 5 ;; x,y,z,tx,ty
-         ;; a Vertex Buffer Object (VBO) for holding the vertex data
-         vbo (GL15/glGenBuffers)
-         ;; a Vertex Array Object (VAO) for holding the attributes for the vbo
-         vao (GL30/glGenVertexArrays)
-         ;; an Element Array Buffer (EBO) for storing the indices of our vertices
-         ebo (GL15/glGenBuffers)
 
          ;; define a rectangle using 4 vertices and 2 triangles
          ;; each vertex has a position and a texture coordinate
@@ -102,14 +113,14 @@
                              1 2 3])] ;; second tri
 
      ;; bind the vao, now everything following should be inside it
-     (GL30/glBindVertexArray vao)
+     (GL30/glBindVertexArray image-vao)
 
      ;; copy the vertex data into the vbo
-     (GL15/glBindBuffer GL15/GL_ARRAY_BUFFER vbo)
+     (GL15/glBindBuffer GL15/GL_ARRAY_BUFFER image-vbo)
      (GL15/glBufferData GL15/GL_ARRAY_BUFFER vertices GL15/GL_STATIC_DRAW)
 
      ;; put the index array in the ebo for opengl to use
-     (GL15/glBindBuffer GL15/GL_ELEMENT_ARRAY_BUFFER ebo)
+     (GL15/glBindBuffer GL15/GL_ELEMENT_ARRAY_BUFFER image-ebo)
      (GL15/glBufferData GL15/GL_ELEMENT_ARRAY_BUFFER indices GL15/GL_STATIC_DRAW)
 
      ;; set vertex attribute pointers
@@ -132,8 +143,7 @@
      ;; draw the image ;;
 
      ;; everything after this will use our texture shader program
-     (let [texture-program (shader/use-texture-shader state)
-           ;; the model transformation matrix handles translation,
+     (let [;; the model transformation matrix handles translation,
            ;; rotation and scaling (which we don't have yet)
            model (doto (Matrix4f.)
                    (.identity)
@@ -161,14 +171,12 @@
 
 (defn draw-image!
   [state texture pos image-dims rotation]
-  ;; @TODO: if we need to draw the same image multiple times we should
-  ;; only bind the texture once.
-  (GL11/glBindTexture GL11/GL_TEXTURE_2D texture)
-  (draw-bound-texture-quad state pos image-dims rotation))
+  (let [texture-program (shader/use-texture-shader state)]
+    (GL11/glBindTexture GL11/GL_TEXTURE_2D texture)
+    (draw-bound-texture-quad state pos image-dims rotation texture-program)))
 
 (defn draw-sub-image!
   [state texture pos parent-dims offsets draw-dims rotation]
-  ;; @TODO: if we need to draw the same image multiple times we should
-  ;; only bind the texture once.
-  (GL11/glBindTexture GL11/GL_TEXTURE_2D texture)
-  (draw-bound-texture-quad state pos parent-dims offsets draw-dims rotation))
+  (let [texture-program (shader/use-texture-shader state)]
+    (GL11/glBindTexture GL11/GL_TEXTURE_2D texture)
+    (draw-bound-texture-quad state pos parent-dims offsets draw-dims rotation texture-program)))

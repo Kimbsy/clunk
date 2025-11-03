@@ -26,13 +26,10 @@
   "Create a VAO and VBO with default vertex config which we can reuse
   for lines and polygons."
   [state]
-  (let [position-size 3
-        vertex-size 3 ;; x,y,z
-        ;; a Vertex Buffer Object (VBO) for holding the vertex data
+  (let [;; a Vertex Buffer Object (VBO) for holding the vertex data
         vbo (GL15/glGenBuffers)
         ;; a Vertex Array Object (VAO) for holding the attributes for the vbo
         vao (GL30/glGenVertexArrays)]
-
     (-> state
         (assoc :shape-vao vao)
         (assoc :shape-vbo vbo))))

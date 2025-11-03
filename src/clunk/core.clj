@@ -223,6 +223,7 @@
       init-context
       init-ortho
       shape/init-shape-rendering
+      image/init-image-rendering
       init-nanovg
       init-transparency
       init-audio
