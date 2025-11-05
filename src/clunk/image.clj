@@ -84,12 +84,12 @@
 
 (defn draw-bound-texture-quad
   ;; draw the whole image
-  ([state pos parent-dims rotation texture-program]
-   (draw-bound-texture-quad state pos parent-dims [0 0] parent-dims rotation))
+  ([state pos parent-dims rotation scale texture-program]
+   (draw-bound-texture-quad state pos parent-dims [0 0] parent-dims rotation scale texture-program))
   ;; draw a subsection of the image
   ([{:keys [ortho-projection image-vbo image-vao image-ebo]
      :as state}
-    [x y] [parent-w parent-h] [off-x off-y] [draw-w draw-h] rotation texture-program]
+    [x y] [parent-w parent-h] [off-x off-y] [draw-w draw-h] rotation [x-scale y-scale] texture-program]
    (let [position-size 3
          tex-coord-size 2
          vertex-size 5 ;; x,y,z,tx,ty
@@ -151,7 +151,7 @@
                    (.translate (/ draw-w 2) (/ draw-h 2) 0)
                    (.rotate (math/to-radians rotation) 0 0 1)
                    (.translate (- (/ draw-w 2)) (- (/ draw-h 2)) 0)
-                   (.scale draw-w draw-h 1))]
+                   (.scale (* draw-w x-scale) (* draw-h y-scale) 1))]
        (with-open [stack (MemoryStack/stackPush)]
          (let [proj-buf (.mallocFloat stack 16)
                model-buf (.mallocFloat stack 16)
@@ -170,13 +170,13 @@
      (GL30/glBindVertexArray 0))))
 
 (defn draw-image!
-  [state texture pos image-dims rotation]
+  [state texture pos image-dims rotation scale]
   (let [texture-program (shader/use-texture-shader state)]
     (GL11/glBindTexture GL11/GL_TEXTURE_2D texture)
-    (draw-bound-texture-quad state pos image-dims rotation texture-program)))
+    (draw-bound-texture-quad state pos image-dims rotation scale texture-program)))
 
 (defn draw-sub-image!
-  [state texture pos parent-dims offsets draw-dims rotation]
+  [state texture pos parent-dims offsets draw-dims rotation scale]
   (let [texture-program (shader/use-texture-shader state)]
     (GL11/glBindTexture GL11/GL_TEXTURE_2D texture)
-    (draw-bound-texture-quad state pos parent-dims offsets draw-dims rotation texture-program)))
+    (draw-bound-texture-quad state pos parent-dims offsets draw-dims rotation scale texture-program)))

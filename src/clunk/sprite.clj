@@ -98,9 +98,9 @@
 
 (defn draw-image-sprite!
   [state
-   {:keys [pos size image-texture rotation] :as s}]
+   {:keys [pos size image-texture rotation scale] :as s}]
   (let [offsets (pos-offsets s)]
-    (image/draw-image! state image-texture (map + pos offsets) size rotation)))
+    (image/draw-image! state image-texture (map + pos offsets) size rotation scale)))
 
 (defn draw-animated-sprite!
   [state
@@ -109,7 +109,8 @@
            spritesheet-size
            current-animation
            animation-frame
-           rotation]
+           rotation
+           scale]
     [w h :as size] :size
     :as s}]
   (let [animation (current-animation (:animations s))
@@ -123,7 +124,8 @@
                            [sheet-x-offset
                             sheet-y-offset]
                            size
-                           rotation)))
+                           rotation
+                           scale)))
 
 (defn set-animation
   [s animation]
@@ -148,6 +150,7 @@
            points
            bounds-fn
            offsets
+           scale
            debug?
            debug-color
            extra]
@@ -157,6 +160,7 @@
          update-fn update-pos
          draw-fn draw-default-sprite!
          offsets [:center]
+         scale [1 1]
          debug? false
          debug-color p/red
          extra {}}}]
@@ -176,7 +180,8 @@
                      default-bounding-poly))
     :debug? debug?
     :debug-color debug-color
-    :offsets offsets}
+    :offsets offsets
+    :scale scale}
    extra))
 
 (defn geometry-sprite
