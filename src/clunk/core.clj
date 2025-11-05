@@ -371,7 +371,8 @@
         _ (preload-assets! initialised-lwjgl assets)
         scenes (init-scenes-fn initialised-lwjgl)
         state (merge initialised-lwjgl {:scenes scenes})
-        state (on-start-fn state)]
+        state (on-start-fn state)
+        state (assoc state :last-frame-time (System/currentTimeMillis))]
     (when-let
         [final-state
          (try
