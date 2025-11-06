@@ -1,6 +1,7 @@
 (ns clunk.image
   (:import (org.joml Matrix4f)
            (org.lwjgl.opengl GL11
+                             GL13
                              GL15
                              GL20
                              GL30
@@ -36,6 +37,7 @@
   [texture-key path]
   ;; generate a texture id and bind it to the 2d texture target
   (let [tex-id (GL11/glGenTextures)]
+    (GL13/glActiveTexture GL13/GL_TEXTURE0)
     (GL11/glBindTexture GL11/GL_TEXTURE_2D tex-id)
 
     ;; set filtering
@@ -172,11 +174,13 @@
 (defn draw-image!
   [state texture pos image-dims rotation scale]
   (let [texture-program (shader/use-texture-shader state)]
+    (GL13/glActiveTexture GL13/GL_TEXTURE0)
     (GL11/glBindTexture GL11/GL_TEXTURE_2D texture)
     (draw-bound-texture-quad state pos image-dims rotation scale texture-program)))
 
 (defn draw-sub-image!
   [state texture pos parent-dims offsets draw-dims rotation scale]
   (let [texture-program (shader/use-texture-shader state)]
+    (GL13/glActiveTexture GL13/GL_TEXTURE0)
     (GL11/glBindTexture GL11/GL_TEXTURE_2D texture)
     (draw-bound-texture-quad state pos parent-dims offsets draw-dims rotation scale texture-program)))
