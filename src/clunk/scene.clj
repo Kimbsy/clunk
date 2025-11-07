@@ -44,4 +44,6 @@
       (-> state
           (assoc :current-scene target)
           (assoc :transitioning? false)
+          ;; otherwise initial delays in the new scene count transition time
+          (assoc :last-frame-time (System/currentTimeMillis))
           init-fn))))
