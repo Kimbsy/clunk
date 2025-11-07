@@ -22,31 +22,18 @@
 
 (def default-line-width 1)
 
-(defn init-shape-rendering
-  "Create a VAO and VBO with default vertex config which we can reuse
-  for lines and polygons."
-  [state]
-  (let [;; a Vertex Buffer Object (VBO) for holding the vertex data
-        vbo (GL15/glGenBuffers)
-        ;; a Vertex Array Object (VAO) for holding the attributes for the vbo
-        vao (GL30/glGenVertexArrays)]
-    (-> state
-        (assoc :shape-vao vao)
-        (assoc :shape-vbo vbo))))
-
 ;; @TODO: would be nice to use an EBO to store the triangle indices and save a bunch of duplicated shared vertices
 (defn render-vertices!
-  [{:keys [ortho-projection shape-vao shape-vbo]}
+  [{:keys [ortho-projection]}
    [x y] vertices color primitive-mode shader-program]
   (let [position-size 3
         vertex-size 3]
 
-    ;; @TODO: maybe eventually the vao will be passed in (or grabbed form the sprite)
     ;; bind the vao, now everything following should be inside it
-    (GL30/glBindVertexArray shape-vao)
+    (GL30/glBindVertexArray (GL30/glGenVertexArrays))
 
     ;; copy the vertex data into the vbo
-    (GL15/glBindBuffer GL15/GL_ARRAY_BUFFER shape-vbo)
+    (GL15/glBindBuffer GL15/GL_ARRAY_BUFFER (GL15/glGenBuffers))
     (GL15/glBufferData GL15/GL_ARRAY_BUFFER vertices GL15/GL_STATIC_DRAW)
 
     ;; set vertex attribute pointers

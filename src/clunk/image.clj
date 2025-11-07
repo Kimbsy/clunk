@@ -14,23 +14,6 @@
 
 (def textures (atom {}))
 
-(defn init-image-rendering
-  "Create a VAO and VBO with default vertex config which we can reuse
-  for image textures."
-  [state]
-  (let [position-size 3
-        vertex-size 3 ;; x,y,z
-        ;; a Vertex Buffer Object (VBO) for holding the vertex data
-        vbo (GL15/glGenBuffers)
-        ;; a Vertex Array Object (VAO) for holding the attributes for the vbo
-        vao (GL30/glGenVertexArrays)
-        ;; an Element Array Buffer (EBO) for storing the indices of our vertices
-        ebo (GL15/glGenBuffers)]
-    (-> state
-        (assoc :image-vao vao)
-        (assoc :image-vbo vbo)
-        (assoc :image-ebo ebo))))
-
 ;; @TODO: would be nice to be able to flip in x or y when drawing images
 
 (defn load-texture!
@@ -89,7 +72,7 @@
   ([state pos parent-dims rotation scale texture-program]
    (draw-bound-texture-quad state pos parent-dims [0 0] parent-dims rotation scale texture-program))
   ;; draw a subsection of the image
-  ([{:keys [ortho-projection image-vbo image-vao image-ebo]
+  ([{:keys [ortho-projection]
      :as state}
     [x y] [parent-w parent-h] [off-x off-y] [draw-w draw-h] rotation [x-scale y-scale] texture-program]
    (let [position-size 3
@@ -114,15 +97,24 @@
          indices (int-array [0 1 3    ;; first tri
                              1 2 3])] ;; second tri
 
+     ;; @TODO: we're creating fresh VAO+VBO+EBO objects every
+     ;; draw (also in `shape.clj`). We should be creating single
+     ;; instances of these and storing them in the game state to
+     ;; reduce overhead. I tried doing this but ran into graphical
+     ;; glitches in MacOS caused by some kind of attribute bleed, I
+     ;; think there'll probably be some way of flushing the buffers
+     ;; before we use them which might be less heavy handed than
+     ;; creating them each time.
+
      ;; bind the vao, now everything following should be inside it
-     (GL30/glBindVertexArray image-vao)
+     (GL30/glBindVertexArray (GL30/glGenVertexArrays))
 
      ;; copy the vertex data into the vbo
-     (GL15/glBindBuffer GL15/GL_ARRAY_BUFFER image-vbo)
+     (GL15/glBindBuffer GL15/GL_ARRAY_BUFFER (GL15/glGenBuffers))
      (GL15/glBufferData GL15/GL_ARRAY_BUFFER vertices GL15/GL_STATIC_DRAW)
 
      ;; put the index array in the ebo for opengl to use
-     (GL15/glBindBuffer GL15/GL_ELEMENT_ARRAY_BUFFER image-ebo)
+     (GL15/glBindBuffer GL15/GL_ELEMENT_ARRAY_BUFFER (GL15/glGenBuffers))
      (GL15/glBufferData GL15/GL_ELEMENT_ARRAY_BUFFER indices GL15/GL_STATIC_DRAW)
 
      ;; set vertex attribute pointers
