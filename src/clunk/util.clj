@@ -1,7 +1,10 @@
 (ns clunk.util
-  (:require [clojure.math :as math])
-  (:import (org.lwjgl.glfw GLFW)
-           (org.lwjgl.system MemoryStack)))
+  (:require [clojure.math :as math]
+            [clojure.java.io :as io])
+  (:import (java.io ByteArrayOutputStream)
+           (org.lwjgl.glfw GLFW)
+           (org.lwjgl.system MemoryStack
+                             MemoryUtil)))
 
 ;;;; General helpers
 
@@ -65,6 +68,22 @@
       ;; extract the values from the IntBuffers
       [(.get p-x 0)
        (.get p-y 0)])))
+
+(defn resource->direct-bytebuffer [resource-path]
+  (with-open [in (io/input-stream (io/resource resource-path))
+              bout (ByteArrayOutputStream.)]
+    (let [buf (byte-array 8192)]
+      (loop []
+        (let [r (.read in buf)]
+          (when (pos? r)
+            (.write bout buf 0 r)
+            (recur))))
+      (let [bytes (.toByteArray bout)
+            bb (MemoryUtil/memAlloc (alength bytes))]
+        (.put bb bytes)
+        (.flip bb)
+        bb)))) ;; caller must MemoryUtil/memFree
+
 
 ;;; Vector helpers
 

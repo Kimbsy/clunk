@@ -7,10 +7,11 @@
                              GL30
                              GL40)
            (org.lwjgl.stb STBImage)
-           (org.lwjgl.system MemoryStack))
+           (org.lwjgl.system MemoryStack MemoryUtil))
   (:require [clunk.shader :as shader]
             [clojure.math :as math]
-            [clunk.util :as u]))
+            [clunk.util :as u]
+            [clojure.java.io :as io]))
 
 (def textures (atom {}))
 
@@ -41,31 +42,38 @@
         ;; load the image (force 4 channel RGBA), we're not using
         ;; `cmp` (normally called `comp`) it grabs the number of
         ;; channels (components) actually found in the original image.
-        (let [image (STBImage/stbi_load path p-w p-h cmp 4)]
-          (when-not image
-            (throw (RuntimeException.
-                    (str "Failed to load image '" path "': "
-                         (STBImage/stbi_failure_reason)))))          
-          ;; upload to GPU
-          (GL11/glTexImage2D GL11/GL_TEXTURE_2D
-                             0
-                             GL11/GL_RGBA8
-                             (.get p-w 0)
-                             (.get p-h 0)
-                             0
-                             GL11/GL_RGBA
-                             GL11/GL_UNSIGNED_BYTE
-                             image)
-          ;; generate mipmaps
-          (GL30/glGenerateMipmap GL11/GL_TEXTURE_2D)
-          
-          ;; cleanup
-          (STBImage/stbi_image_free image)
+        (let [clean-path (if (= "resources/" (subs path 0 10))
+                           (subs path 10)
+                           path)
+              bb (u/resource->direct-bytebuffer clean-path)]
+          (try
+            (let [image (STBImage/stbi_load_from_memory bb p-w p-h cmp 4)]
+              (when-not image
+                (throw (RuntimeException.
+                        (str "Failed to load image '" path "': "
+                             (STBImage/stbi_failure_reason)))))
+              ;; upload to GPU
+              (GL11/glTexImage2D GL11/GL_TEXTURE_2D
+                                 0
+                                 GL11/GL_RGBA8
+                                 (.get p-w 0)
+                                 (.get p-h 0)
+                                 0
+                                 GL11/GL_RGBA
+                                 GL11/GL_UNSIGNED_BYTE
+                                 image)
+              ;; generate mipmaps
+              (GL30/glGenerateMipmap GL11/GL_TEXTURE_2D)
 
-          ;; Add the texture id to the textures atom
-          (swap! textures assoc texture-key tex-id)
+              ;; cleanup
+              (STBImage/stbi_image_free image)
 
-          tex-id)))))
+              ;; Add the texture id to the textures atom
+              (swap! textures assoc texture-key tex-id)
+
+              tex-id)
+            (finally
+              (MemoryUtil/memFree bb))))))))
 
 (defn draw-bound-texture-quad
   ;; draw the whole image

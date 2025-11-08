@@ -1,5 +1,8 @@
 (ns clunk.audio
-  (:import (java.nio ByteBuffer
+  (:require [clojure.java.io :as io]
+            [clunk.util :as u])
+  (:import (java.io ByteArrayOutputStream)
+           (java.nio ByteBuffer
                      IntBuffer)
            (org.lwjgl.openal AL
                              AL10
@@ -60,20 +63,28 @@
   (with-open [stack (MemoryStack/stackPush)]
     (let [p-channels (.mallocInt stack 1)
           p-sample-rate (.mallocInt stack 1)
-          raw-audio (STBVorbis/stb_vorbis_decode_filename
-                     path
-                     p-channels
-                     p-sample-rate)]
+          clean-path (if (= "resources/" (subs path 0 10))
+                       (subs path 10)
+                       path)
+          bb (u/resource->direct-bytebuffer clean-path)
+          raw-audio (try
+                      (STBVorbis/stb_vorbis_decode_memory
+                       bb
+                       p-channels
+                       p-sample-rate)
+                      (finally (MemoryUtil/memFree bb)))]
       (when-not raw-audio
         (throw (RuntimeException.
                 (str "Failed to load OGG: " (STBVorbis/stb_vorbis_get_error nil)))))
 
       ;; choose format based on channels
-      (let [fmt (if (= 1 (.get p-channels 0))
+      (let [channels (.get p-channels 0)
+            sample-rate (.get p-sample-rate 0)
+            fmt (if (= 1 channels)
                   AL10/AL_FORMAT_MONO16
                   AL10/AL_FORMAT_STEREO16)
             al-buffer (AL10/alGenBuffers)]
-        (AL10/alBufferData al-buffer fmt raw-audio (.get p-sample-rate 0))
+        (AL10/alBufferData al-buffer fmt raw-audio sample-rate)
 
         ;; we can free this up now it's in the buffer
         (MemoryUtil/memFree raw-audio)
