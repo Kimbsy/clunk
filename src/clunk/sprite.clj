@@ -15,22 +15,25 @@
    ])
 
 (defn pos-offsets
-  "Determine the x and y offsets for a sprite based on it's `:w`, `:h`
-  and `:offsets` configuration.
+  "Determine the x and y offsets for a sprite based on it's `:w`, `:h`,
+  `:scale` and `:offsets` configuration.
 
   Defaults to `[:center :center]`."
   [{[x-off y-off] :offsets
-    [w h] :size}]
-  (let [dx (cond
+    [w h] :size
+    [sx sy] :scale}]
+  (let [sx (or sx 1)
+        sy (or sy 1)
+        dx (cond
              (= :left x-off) 0
-             (= :right x-off) (- w)
-             (#{:center :centre} x-off) (- (/ w 2))
-             :else (- (/ w 2)))
+             (= :right x-off) (- (* w sx))
+             (#{:center :centre} x-off) (- (/ (* w sx) 2))
+             :else (- (/ (* w sx) 2)))
         dy (cond
              (= :top y-off) 0
-             (= :bottom y-off) (- h)
-             (#{:center :centre} y-off) (- (/ h 2))
-             :else (- (/ h 2)))]
+             (= :bottom y-off) (- (* h sy))
+             (#{:center :centre} y-off) (- (/ (* h sy) 2))
+             :else (- (/ (* h sy) 2)))]
     [dx dy]))
 
 (defn update-pos
@@ -279,6 +282,7 @@
            points
            bounds-fn
            offsets
+           scale
            animations
            current-animation
            debug?
@@ -289,6 +293,7 @@
          update-fn update-animated-sprite
          draw-fn draw-animated-sprite!
          offsets [:center]
+         scale [1 1]
          animations {:none {:frames 1
                             :y-offset 0
                             :frame-delay 100}}
@@ -312,6 +317,7 @@
                      :points
                      default-bounding-poly))
     :offsets offsets
+    :scale scale
     :animations animations
     :current-animation current-animation
     :delay-count 0
