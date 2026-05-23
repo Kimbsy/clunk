@@ -133,7 +133,7 @@
   [{:keys [shader-programs] :as state}
    pos poly color]
   ;; triangulate the polygon and stick all points in a flat float array
-  (let [tris (u/triangulate poly)
+  (let [tris (u/memo-triangulate poly)
         vertices (->> tris
                       (apply concat)
                       (map #(conj % 0))
@@ -148,7 +148,7 @@
   [{:keys [shader-programs] :as state}
    poly-data color]
   (let [tris (mapcat (fn [[pos poly]]
-                       (u/triangulate (mapv (partial mapv + pos) poly)))
+                       (u/memo-triangulate (mapv (partial mapv + pos) poly)))
                      poly-data)
         vertices (->> tris
                       (apply concat)
@@ -184,7 +184,7 @@
 
 (defn fill-rect!
   [{:keys [shader-programs] :as state} pos [w h] color]
-  ;; triangulate the polygon and stick all points in a flat float array
+  ;; define the vertices by hand, it's just a rectangle
   (let [vertices (float-array [0 0 0
                                0 h 0
                                w h 0

@@ -1,8 +1,9 @@
 (ns clunk.palette)
 
-(defn rand-color
+(defn rand-colour
   []
   [(rand) (rand) (rand) 1])
+(def rand-color rand-colour)
 
 (defn hex->rgba
   ([hex-string]

@@ -272,10 +272,10 @@
       (if-let [[i tri] (first (all-ears p))]
         (recur (remove-nth (mod (inc i) (count p)) p)
                (conj tris tri))
-        (do (prn "FOUND NO EARS????")
-            (prn p)
-            tris))
+        tris)
       (conj tris (vec p)))))
+
+(def memo-triangulate (memoize triangulate))
 
 (defn ellipse-points
   "Generate a collection of `[x y]` points in CCW order around an

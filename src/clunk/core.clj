@@ -58,6 +58,7 @@
 (defn init-glfw
   "Initialise GLFW, most GLFW functions will not work before doing this"
   [{[initial-window-width initial-window-height] :size
+    :keys [title]
     :as state}]
   (when (not (GLFW/glfwInit))
     (throw (IllegalStateException. "Unable to initialise GLFW")))
@@ -80,7 +81,7 @@
 
 
   ;; create the window and store it in the state
-  (let [window (GLFW/glfwCreateWindow initial-window-width initial-window-height "Hello, World!" 0 0)]
+  (let [window (GLFW/glfwCreateWindow initial-window-width initial-window-height title 0 0)]
     (if (zero? window)
       (throw (IllegalStateException. "Unable to create the GLFW window"))
       (assoc state :window window))))
@@ -213,8 +214,7 @@
   (assoc state :shader-programs (shader/default-shader-programs)))
 
 (defn init
-  [{[initial-window-width initial-window-height] :size
-    :as game-config}]
+  [game-config]
   (-> game-config
       init-error-callback
       init-glfw
