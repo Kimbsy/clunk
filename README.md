@@ -468,4 +468,4 @@ The `clunk/util`, `clunk.shape` and `clunk/palette` namespaces provide a number 
 
 ## Shaders
 
-@TOOD: add docs describing how to add and use custom shaders
+Using custom shaders is beyond the scope of this readme, but take a look at the [custom-shaders](/examples/custom-shaders) example game for a well commented example.

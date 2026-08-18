@@ -134,7 +134,7 @@
                                  0) ;; offset 0 since xyz is at the start of each vertex section
      (GL30/glEnableVertexAttribArray 0)
 
-     (GL30/glVertexAttribPointer 1 ;; attribute at location 1 in the shader is color
+     (GL30/glVertexAttribPointer 1 ;; attribute at location 1 in the shader is the texture coordinate
                                  tex-coord-size ;; tex-coord is 2 bytes (tx ty)
                                  GL15/GL_FLOAT
                                  false

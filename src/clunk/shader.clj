@@ -83,13 +83,14 @@
   [shader-program]
   (GL20/glUseProgram shader-program))
 
+;; @TODO: provide the ability for a user to define custom shaders in assets
 (defn default-shader-programs
   "These shader programs need an orthographic projection matrix and a
   model matrix supplied as uniforms."
   []
-  {::line (program "shader/line.vert" "shader/line.frag" :geometry-shader-path "shader/line.geom")
-   ::solid-poly (program "shader/solid-poly.vert" "shader/solid-poly.frag")
-   ::texture (program "shader/texture.vert" "shader/texture.frag")})
+  {::line (program "shader/builtin/line.vert" "shader/builtin/line.frag" :geometry-shader-path "shader/builtin/line.geom")
+   ::solid-poly (program "shader/builtin/solid-poly.vert" "shader/builtin/solid-poly.frag")
+   ::texture (program "shader/builtin/texture.vert" "shader/builtin/texture.frag")})
 
 (defn use-line-shader
   [{:keys [window] :as state} color line-width]
