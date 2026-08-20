@@ -39,7 +39,7 @@
         offsets (sprite/pos-offsets s)
 
         ;; compile the shader program (don't do this every frame!)
-        texture-program (shader/program "shader/texture.vert" "shader/texture.frag")]
+        texture-program (get-in state [:shader-programs :shiny-image])]
 
     ;; use the compiled shader program
     (shader/use-program texture-program)

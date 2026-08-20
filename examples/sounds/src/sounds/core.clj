@@ -20,10 +20,10 @@
            :on-start-fn startup
            :init-scenes-fn init-scenes
            :current-scene :level-01
-           :assets {:audio {:music "resources/audio/music/music.ogg"
-                            :blip-1 "resources/audio/sfx/blip-1.ogg"
-                            :blip-2 "resources/audio/sfx/blip-2.ogg"
-                            :blip-3 "resources/audio/sfx/blip-3.ogg"}}}))
+           :assets {:audio {:music "audio/music/music.ogg"
+                            :blip-1 "audio/sfx/blip-1.ogg"
+                            :blip-2 "audio/sfx/blip-2.ogg"
+                            :blip-3 "audio/sfx/blip-3.ogg"}}}))
 
 (defn -main
   "Run the game"

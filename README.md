@@ -84,9 +84,9 @@ To make a simple game start with the `clunk.core/game` function and run it with 
                    :size [1200 800]
                    :init-scenes-fn init-scenes ;; @TODO: implement me!
                    :current-scene :demo
-                   :assets {:image {:captain-spritesheet "resources/img/captain.png"
-                                    :heart "resources/img/heart.png"}
-                            :audio {:music "resources/audio/music/music.ogg"}}}))
+                   :assets {:image {:captain-spritesheet "img/captain.png"
+                                    :heart "img/heart.png"}
+                            :audio {:music "audio/music/music.ogg"}}}))
 
 (defn -main [& args]
   (c/start! game))

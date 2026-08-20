@@ -79,6 +79,15 @@
     ;; return the program
     shader-program))
 
+(defn compile-user-shaders
+  [configs]
+  (reduce (fn [acc [k {:keys [vert frag geom]}]]
+            (assoc acc k (if geom
+                           (program vert frag :geometry-shader-path geom)
+                           (program vert frag))))
+          {}
+          configs))
+
 (defn use-program
   [shader-program]
   (GL20/glUseProgram shader-program))

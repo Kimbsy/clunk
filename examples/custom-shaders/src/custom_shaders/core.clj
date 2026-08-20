@@ -14,7 +14,9 @@
            :size [800 600]
            :init-scenes-fn init-scenes
            :current-scene :level-01
-           :assets {:image {:big-present "resources/img/big-present.png"}}}))
+           :assets {:image {:big-present "img/big-present.png"}
+                    :shaders {:shiny-image {:vert "shader/shiny-image.vert"
+                                            :frag "shader/shiny-image.frag"}}}}))
 
 (defn -main
   "Run the game"

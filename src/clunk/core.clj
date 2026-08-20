@@ -211,7 +211,10 @@
 
 (defn init-shaders
   [state]
-  (assoc state :shader-programs (shader/default-shader-programs)))
+  (-> state
+      (assoc :shader-programs (merge (shader/default-shader-programs)
+                                     (shader/compile-user-shaders (get-in state [:assets :shaders]))))))
+
 
 (defn init
   [game-config]

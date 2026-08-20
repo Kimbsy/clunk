@@ -13,7 +13,7 @@
   (c/game {:title "Basic Sprite Example"
            :init-scenes-fn init-scenes
            :current-scene :level-01
-           :assets {:image {:captain-spritesheet "resources/img/captain.png"}}}))
+           :assets {:image {:captain-spritesheet "img/captain.png"}}}))
 
 (defn -main
   "Run the game"
